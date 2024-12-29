@@ -47,5 +47,16 @@ services:
       DATABASE_URL: postgresql://vori:voripassword@postgres:5432/vori_db
       KAFKA_BROKERS: kafka:9092
 
+  whisper:
+    build: 
+      context: ./src/whisper
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKERS: kafka:9092
+
 volumes:
   postgres_data: 
