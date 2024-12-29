@@ -1,5 +1,7 @@
 # VORI - Voice to Report (Remaster)
 
+![VORI Logo](https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/voriLogo.png)
+
 실시간 음성 회의 내용을 텍스트화하고 칸반보드와 연동하여 작업을 자동화하는 프로젝트의 리마스터 버전입니다.
 이전 AWS 기반 프로젝트를 완전한 로컬 환경으로 마이그레이션하여, 클라우드 의존성을 제거하고 더 유연하고 비용 효율적인 시스템을 구축하는 것을 목표로 합니다.
 
@@ -37,6 +39,7 @@
 ### 백엔드
 - TypeScript
 - Node.js + Express.js
+- Django (Whisper 서비스)
 - Prisma (ORM)
 - PostgreSQL
 - Apache Kafka
@@ -56,16 +59,17 @@
 - ESLint & Prettier
 - Jest (테스팅)
 
+### 시스템 요구사항
+- Docker & Docker Compose (필수)
+- Node.js 18+ (개발용)
+- Python 3.11+ (Whisper 서비스용)
+- CUDA 지원 GPU (Whisper 가속화용, 선택사항)
+
 ## 주요 기능
 - 실시간 음성 스트리밍 및 텍스트 변환
 - 칸반보드 통합
 - 자동 작업 생성 및 상태 업데이트
 - 회의록 자동 생성
-
-## 시스템 요구사항
-- Docker & Docker Compose (필수)
-- Node.js 18+ (개발용)
-- CUDA 지원 GPU (Whisper 가속화용, 선택사항)
 
 ## 설치 방법
 (추후 작성 예정)
