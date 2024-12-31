@@ -88,34 +88,34 @@ EC2 인스턴스에서 Kafka 클러스터의 토픽과 파티션을 구성했습
 
 **토픽 생성 명령어:**
 
-'''bash
+```bash
 bin/kafka-topics.sh --create \
     --bootstrap-server b-1.vorikafka.fet16s.c12.kafka.us-east-1.amazonaws.com:9092 \
     --replication-factor 1 \
     --partitions 5 \
     --topic voriAudioStream
-'''
+```
 
 #### 3. MSK와 Lambda 이벤트 매핑
-각 파티션에 대해 별도의 Lambda 함수를 생성하고 이벤트 소스 매핑을 구성했습니다. 이를 통해 오디오 데이터의 병렬 처리가 가능했습니다.
+Lambda의 자동 동시성 처리 기능을 활용하여 단일 Lambda 함수로 MSK의 여러 파티션의 메시지를 효율적으로 처리했습니다.
 
 **이벤트 매핑 명령어:**
 
-'''bash
+```bash
 aws lambda create-event-source-mapping \
     --function-name vori_fromMskToS3_partition0 \
     --event-source-arn arn:aws:kafka:us-east-1:823401933116:cluster/vorikafka/985aecc8-9c79-4031-ab8f-088222c95a6d-12 \
     --batch-size 1 \
     --starting-position LATEST \
     --topics voriAudioStream
-'''
+```
 
 #### 4. S3 저장 및 처리 완료 시그널링
 오디오 버퍼를 S3에 저장하고, 모든 데이터가 수신되면 end.txt 파일을 생성하는 Lambda 함수를 구현했습니다.
 
 **Lambda 함수 코드:**
 
-'''python
+```python
 import boto3
 import json
 import os
@@ -191,6 +191,7 @@ def create_end_txt(randomkey):
     with open(end_file_path, "w") as end_file:
         end_file.write("Recording Finished")
     return end_file_path
+```
 
 #### 5. 주요 기술적 도전과 해결
 
