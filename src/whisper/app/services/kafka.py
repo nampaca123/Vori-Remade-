@@ -44,9 +44,14 @@ class KafkaClient:
             if not audio_data or not meeting_id:
                 raise ValueError("Invalid message format")
                 
+            logger.info("="*50)
+            logger.info(f"Processing audio for meeting: {meeting_id}")
+            
             result = await whisper_service.transcribe(audio_data)
+            logger.info(f"Whisper transcription result: {result}")
             
             # 처리 결과를 다른 토픽으로 전송
+            logger.info(f"Sending transcription to Kafka topic: {KAFKA_TOPICS['TRANSCRIPTION']['COMPLETED']}")
             await self.producer.send_and_wait(
                 KAFKA_TOPICS["TRANSCRIPTION"]["COMPLETED"],
                 {
@@ -55,6 +60,7 @@ class KafkaClient:
                     "timestamp": msg.timestamp
                 }
             )
+            logger.info("="*50)
             
         except Exception as e:
             logger.error(f"Failed to process audio: {str(e)}")

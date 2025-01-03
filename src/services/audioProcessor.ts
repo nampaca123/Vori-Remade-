@@ -1,13 +1,15 @@
 import { consumer, producer, KAFKA_TOPICS } from '../lib/kafka';
-import path from 'path';
-import fs from 'fs/promises';
-
-// 오디오 저장 디렉토리 설정
-const AUDIO_DIR = path.join(__dirname, '../../uploads/audio');
+import { prisma } from '../lib/prisma';
 
 interface AudioMessage {
   meetingId: string;
   audioData: string;  // base64 encoded webm
+  timestamp: string;
+}
+
+interface TranscriptionMessage {
+  meetingId: string;
+  transcript: string;
   timestamp: string;
 }
 
@@ -17,7 +19,6 @@ export class AudioProcessor {
 
   private constructor() {
     // 싱글톤 패턴
-    this.ensureAudioDirectory();
   }
 
   static getInstance(): AudioProcessor {
@@ -27,56 +28,27 @@ export class AudioProcessor {
     return AudioProcessor.instance;
   }
 
-  // 오디오 저장 디렉토리 생성
-  private async ensureAudioDirectory() {
-    try {
-      await fs.access(AUDIO_DIR);
-    } catch {
-      await fs.mkdir(AUDIO_DIR, { recursive: true });
-    }
-  }
-
-  // 오디오 데이터 저장
-  private async saveAudio(meetingId: string, audioData: string): Promise<string> {
-    const filename = `${meetingId}_${Date.now()}.webm`;
-    const filepath = path.join(AUDIO_DIR, filename);
-    
-    // base64 디코딩 후 파일 저장
-    const buffer = Buffer.from(audioData, 'base64');
-    await fs.writeFile(filepath, buffer);
-    
-    return filepath;
-  }
-
-  // 컨슈머 시작
+  // 오슈머 시작
   async startProcessing() {
     if (this.isProcessing) return;
     
     try {
       await consumer.connect();
-      await consumer.subscribe({ topic: KAFKA_TOPICS.AUDIO.RAW });
+      await consumer.subscribe({ 
+        topics: [KAFKA_TOPICS.TRANSCRIPTION.COMPLETED] 
+      });
       
       await consumer.run({
-        eachMessage: async ({ message }) => {
-          const audioMessage: AudioMessage = JSON.parse(message.value?.toString() || '');
-          
-          // 오디오 파일 저장
-          const filepath = await this.saveAudio(
-            audioMessage.meetingId, 
-            audioMessage.audioData
-          );
-          
-          // 처리된 오디오 정보 전송
-          await producer.send({
-            topic: KAFKA_TOPICS.AUDIO.PROCESSED,
-            messages: [{
-              value: JSON.stringify({
-                meetingId: audioMessage.meetingId,
-                filepath,
-                timestamp: audioMessage.timestamp
-              })
-            }]
-          });
+        eachMessage: async ({ topic, message }) => {
+          if (topic === KAFKA_TOPICS.TRANSCRIPTION.COMPLETED) {
+            console.log("=".repeat(50));
+            console.log("Received transcription from Whisper:");
+            const data = JSON.parse(message.value?.toString() || '');
+            console.log("Meeting ID:", data.meetingId);
+            console.log("Transcript:", data.transcript);
+            console.log("=".repeat(50));
+            await this.processTranscriptionMessage(message);
+          }
         }
       });
       
@@ -85,6 +57,23 @@ export class AudioProcessor {
       
     } catch (error) {
       console.error('Error in audio processor:', error);
+      throw error;
+    }
+  }
+
+  private async processTranscriptionMessage(message: any) {
+    console.log('[AudioProcessor] Processing transcription message');
+    try {
+      const transcriptionMessage: TranscriptionMessage = JSON.parse(message.value?.toString() || '');
+      console.log(`[AudioProcessor] Parsed transcription for meeting: ${transcriptionMessage.meetingId}`);
+      
+      await prisma.meeting.update({
+        where: { id: transcriptionMessage.meetingId },
+        data: { transcript: transcriptionMessage.transcript }
+      });
+      console.log(`[AudioProcessor] Updated transcript in database for meeting: ${transcriptionMessage.meetingId}`);
+    } catch (error) {
+      console.error('[AudioProcessor] Error processing transcription:', error);
       throw error;
     }
   }

@@ -1,5 +1,6 @@
 import app from './app';
 import { connectProducer, createTopics } from './lib/kafka';
+import { AudioProcessor } from './services/audioProcessor';
 
 const PORT = process.env.PORT || 3000;
 
@@ -11,6 +12,10 @@ const startServer = async () => {
     
     // Kafka 프로듀서 연결
     await connectProducer();
+    
+    // AudioProcessor로 변경
+    const audioProcessor = AudioProcessor.getInstance();
+    await audioProcessor.startProcessing();
     
     // 서버 시작
     app.listen(PORT, () => {

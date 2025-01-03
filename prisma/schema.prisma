@@ -5,7 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-1.1.x"]
 }
 
 datasource db {
@@ -15,7 +16,7 @@ datasource db {
 
 // 회의 모델
 model Meeting {
-  id          String   @id @default(uuid())
+  id          String   @id
   title       String
   audioUrl    String?
   transcript  String?

@@ -37,6 +37,8 @@ const convertAndEncodeAudio = async (inputPath: string) => {
     // 4. 요청 데이터 생성 및 저장
     const requestData = {
       meetingId: 'test-meeting-001',
+      title: 'Test Meeting',
+      userId: 'test-user',
       audioData: encodedAudio,
       timestamp: new Date().toISOString()
     };

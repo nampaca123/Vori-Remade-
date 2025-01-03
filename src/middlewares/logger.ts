@@ -16,19 +16,12 @@ const stream: StreamOptions = {
 };
 
 const morganFormat = process.env.NODE_ENV === "production"
-  ? `:remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" \nheaders :headers \nquery :query \nbody :body`
-  : `:method :url :status :response-time ms - :res[content-length] \nheaders :headers \nquery :query \nbody :body`;
+  ? `:remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length]`
+  : `:method :url :status :response-time ms - :res[content-length]`;
 
 // Custom tokens
-morgan.token("body", (req: Request) => JSON.stringify(req.body));
-morgan.token("query", (req: Request) => JSON.stringify(req.query));
-morgan.token("headers", (req: Request) => JSON.stringify(req.headers));
 morgan.token("status", (req, res) => colorizeStatus(res.statusCode));
 
 const morganMW = morgan(morganFormat, { stream });
-
-export const logInfo = (message: string) => logger.info(message);
-export const logError = (message: string) => logger.err(message);
-export const logWarn = (message: string) => logger.warn(message);
 
 export { logger, morganMW }; 
