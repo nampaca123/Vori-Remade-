@@ -23,8 +23,13 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Whisper Service...")
     await kafka_client.close()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Whisper Service",
+    description="Kafka consumer for audio transcription using Whisper",
+    version="1.0.0"
+)
 
 @app.get("/health")
 async def health_check():
+    """서비스 상태 확인"""
     return {"status": "healthy"} 

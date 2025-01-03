@@ -225,6 +225,10 @@ VPC Endpoint를 생성하여 Lambda와 S3 간에 AWS 내부에서 프라이빗 �
 - Prisma (ORM)
 - PostgreSQL
 - Apache Kafka
+- Apache Spark
+  - Spark Streaming (실시간 음성 데이터 처리)
+  - Spark ML (회의 내용 분석)
+- Scala (Spark 애플리케이션)
 - Whisper (OpenAI) - 음성인식
 - OpenAI GPT API - 텍스트 처리
 - Swagger UI - API 문서화
@@ -245,6 +249,7 @@ VPC Endpoint를 생성하여 Lambda와 S3 간에 AWS 내부에서 프라이빗 �
 - Docker & Docker Compose (필수)
 - Node.js 18+ (개발용)
 - Python 3.11+ (Whisper 서비스용)
+- Java Runtime Environment 11+ (Spark용)
 - CUDA 지원 GPU (Whisper 가속화용, 선택사항)
 
 ## 주요 기능
@@ -252,6 +257,10 @@ VPC Endpoint를 생성하여 Lambda와 S3 간에 AWS 내부에서 프라이빗 �
 - 칸반보드 통합
 - 자동 작업 생성 및 상태 업데이트
 - 회의록 자동 생성
+- 실시간 회의 분석
+  - 키워드 추출 및 트렌드 분석
+  - 회의 효율성 지표 생성
+  - 주제별 분류 및 인사이트 도출
 
 ## 설치 방법
 (추후 작성 예정)

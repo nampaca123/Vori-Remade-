@@ -57,6 +57,18 @@ services:
       - kafka
     environment:
       KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: whisper_service
+      WHISPER_MODEL: base.en
+      LOG_LEVEL: INFO
+    volumes:
+      - ./src/whisper:/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
 volumes:
   postgres_data: 
