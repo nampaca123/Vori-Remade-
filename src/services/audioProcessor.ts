@@ -54,23 +54,28 @@ export class AudioProcessor {
     if (this.isProcessing) return;
 
     try {
+      console.log('[AudioProcessor] Starting audio processor...');
       await consumer.connect();
+      console.log('[AudioProcessor] Connected to Kafka');
+      
       await consumer.subscribe({ 
         topics: [KAFKA_TOPICS.TRANSCRIPTION.COMPLETED],
         fromBeginning: false 
       });
+      console.log('[AudioProcessor] Subscribed to topics:', KAFKA_TOPICS.TRANSCRIPTION.COMPLETED);
 
       await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
+          console.log('[AudioProcessor] Received message from topic:', topic);
           if (!message.value) return;
           await this.processTranscriptionMessage(message);
         },
       });
 
       this.isProcessing = true;
-      console.log('Audio processor started');
+      console.log('[AudioProcessor] Started successfully');
     } catch (error) {
-      console.error('Error starting audio processor:', error);
+      console.error('[AudioProcessor] Error starting processor:', error);
       throw error;
     }
   }
@@ -83,6 +88,7 @@ export class AudioProcessor {
 
     try {
       const transcriptionMessage: TranscriptionMessage = JSON.parse(message.value.toString());
+      console.log('[AudioProcessor] Processing transcription:', transcriptionMessage.meetingId);
       
       if (!this.isValidTranscriptionMessage(transcriptionMessage)) {
         console.error('[AudioProcessor] Invalid message format:', transcriptionMessage);
@@ -90,7 +96,10 @@ export class AudioProcessor {
       }
 
       await this.updateDatabase(transcriptionMessage);
+      console.log('[AudioProcessor] Updated database for meeting:', transcriptionMessage.meetingId);
+      
       this.broadcastTranscription(transcriptionMessage);
+      console.log('[AudioProcessor] Broadcasted transcription to WebSocket clients');
       
     } catch (error) {
       console.error('[AudioProcessor] Error processing message:', error);

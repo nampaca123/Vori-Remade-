@@ -216,60 +216,122 @@ VPC Endpoint를 생성하여 Lambda와 S3 간에 AWS 내부에서 프라이빗 �
 - AWS S3 → 로컬 파일 시스템
 - AWS Lambda → Express.js 엔드포인트
 
+# 데이터 파이프라인 아키텍처
+
+## 데이터 흐름
+
+```plaintext
+클라이언트 (음성)
+      ↓
+Express.js 서버 (메인 서버)
+      ↓
+Kafka (audio.raw)
+      ↓
+FastAPI 서버 (Whisper 서비스)
+      ↓
+Kafka (transcription.completed)
+      ↓
+Express.js 서버 (메인 서버)
+      ↓---------------→ WebSocket (실시간 업데이트)
+      ↓
+PostgreSQL
+```
+
+## 아키텍처 설계 의도
+
+1. **분산 처리를 통한 성능 최적화**
+   - 무거운 음성 인식 작업을 별도 서버로 분리
+   - 메인 서버의 응답성 유지
+   - GPU 리소스의 효율적 활용
+
+2. **안정성과 확장성**
+   - Kafka를 통한 데이터 손실 방지
+   - 각 서버의 독립적 스케일링 가능
+   - 서버 장애 시에도 데이터 보존
+
+3. **실시간성 확보**
+   - WebSocket을 통한 즉각적인 피드백
+   - 평균 처리 시간 3-4초 달성
+   - 비동기 처리를 통한 응답 지연 최소화
+
+### 핵심 기술 선택 이유
+
+1. **Express.js & FastAPI 조합**
+   - Express.js: 안정적인 클라이언트 통신 처리
+   - FastAPI: 비동기 처리에 최적화된 Python 서버
+   - 각 언어/프레임워크의 장점 활용
+
+2. **Apache Kafka**
+   - 서버 간 안정적인 메시지 전달
+   - 시스템 장애 시 데이터 보존
+   - 향후 기능 확장을 위한 유연한 토픽 구조
+
+3. **PostgreSQL**
+   - 트랜잭션 기반의 데이터 정합성
+   - JSON 형식 지원으로 유연한 데이터 저장
+   - 복잡한 쿼리 처리 능력
+
+이러한 아키텍처를 통해 실시간 음성 처리의 안정성과 확장성을 모두 확보하면서, 개발 및 유지보수의 효율성도 높일 수 있었습니다.
+
 ## 기술 스택
 
 ### 백엔드
-- TypeScript
-- Node.js + Express.js
-- Django (Whisper 서비스)
+#### 메인 서버
+- TypeScript & Node.js
+- Express.js (웹 프레임워크)
 - Prisma (ORM)
-- PostgreSQL
-- Apache Kafka
-- Apache Spark
-  - Spark Streaming (실시간 음성 데이터 처리)
+- PostgreSQL (데이터베이스)
+
+#### 음성 처리 서버
+- FastAPI (Python 웹 프레임워크)
+- Whisper (OpenAI 음성인식)
+- OpenAI GPT API (텍스트 처리)
+
+#### 데이터 처리
+- Apache Kafka (메시지 큐)
+- Apache Spark & Scala
+  - Spark Streaming (실시간 데이터 처리)
   - Spark ML (회의 내용 분석)
-- Scala (Spark 애플리케이션)
-- Whisper (OpenAI) - 음성인식
-- OpenAI GPT API - 텍스트 처리
-- Swagger UI - API 문서화
+
+#### API 문서화
+- Swagger UI
 
 ### 프론트엔드
-- Next.js (React 기반 프레임워크)
+- Next.js (React 프레임워크)
 - Firebase Authentication
 - TailwindCSS
 - React Query
-- WebSocket (실시간 오디오 스트리밍)
+- WebSocket (실시간 통신)
 
-### 개발 도구
+### 개발 환경
 - Docker & Docker Compose
 - ESLint & Prettier
-- Jest (테스팅)
 
 ### 시스템 요구사항
 - Docker & Docker Compose (필수)
-- Node.js 18+ (개발용)
-- Python 3.11+ (Whisper 서비스용)
-- Java Runtime Environment 11+ (Spark용)
-- CUDA 지원 GPU (Whisper 가속화용, 선택사항)
+- Node.js 18+
+- Python 3.11+
+- Java Runtime Environment 11+
+- CUDA 지원 GPU (선택사항)
 
 ## 주요 기능
-- 실시간 음성 스트리밍 및 텍스트 변환
-- 칸반보드 통합
-- 자동 작업 생성 및 상태 업데이트
+
+### 실시간 음성 처리
+- 음성 스트리밍 및 텍스트 변환 (평균 지연시간 3-4초)
+- WebSocket을 통한 실시간 피드백
+
+### 작업 자동화
+- 회의 내용 기반 작업 자동 생성
+- 칸반보드 자동 업데이트
 - 회의록 자동 생성
-- 실시간 회의 분석
-  - 키워드 추출 및 트렌드 분석
-  - 회의 효율성 지표 생성
-  - 주제별 분류 및 인사이트 도출
+
+### 데이터 분석
+- Spark ML을 활용한 회의 내용 분석
+- 키워드 추출 및 트렌드 분석
+- 회의 효율성 지표 생성
 
 ## 설치 방법
 (추후 작성 예정)
-
-## 로컬 개발 환경 설정
-### Docker 컨테이너 구성
-- PostgreSQL (데이터베이스)
-- Apache Kafka (메시지 큐)
-- Zookeeper (Kafka 클러스터 관리)
 
 ## API 문서
 (추후 작성 예정)
