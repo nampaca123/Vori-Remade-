@@ -63,9 +63,23 @@ export const sendMessage = async (topic: string, message: any) => {
 // 토픽 생성 함수
 export const createTopics = async () => {
   try {
+    console.log('Creating Kafka topics...');
     await admin.connect();
-    const topics = Object.values(KAFKA_TOPICS).flatMap(group => Object.values(group));
     
+    // 모든 토픽을 평면화된 배열로 변환
+    const topics = [
+      KAFKA_TOPICS.AUDIO.RAW,
+      KAFKA_TOPICS.AUDIO.PROCESSED,
+      KAFKA_TOPICS.TRANSCRIPTION.PENDING,
+      KAFKA_TOPICS.TRANSCRIPTION.COMPLETED,
+      KAFKA_TOPICS.MEETING.CREATED,
+      KAFKA_TOPICS.MEETING.UPDATED,
+      KAFKA_TOPICS.MEETING.SUMMARY,
+      KAFKA_TOPICS.TICKET.CREATED,
+      KAFKA_TOPICS.TICKET.UPDATED,
+      KAFKA_TOPICS.TICKET.EXTRACTED
+    ];
+
     await admin.createTopics({
       topics: topics.map(topic => ({
         topic,
@@ -73,12 +87,12 @@ export const createTopics = async () => {
         replicationFactor: 1
       }))
     });
-    
-    console.log('Kafka topics created successfully');
+
+    console.log('Successfully created topics:', topics);
+    await admin.disconnect();
   } catch (error) {
     console.error('Failed to create Kafka topics:', error);
-  } finally {
-    await admin.disconnect();
+    throw error;
   }
 };
 

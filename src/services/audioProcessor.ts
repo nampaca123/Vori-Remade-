@@ -1,11 +1,8 @@
-import { consumer, producer, KAFKA_TOPICS } from '../lib/kafka';
+import WebSocket from 'ws';
+import { Server } from 'ws';
 import { prisma } from '../lib/prisma';
-
-interface AudioMessage {
-  meetingId: string;
-  audioData: string;  // base64 encoded webm
-  timestamp: string;
-}
+import { consumer } from '../lib/kafka';
+import { KAFKA_TOPICS } from '../lib/kafka';
 
 interface TranscriptionMessage {
   meetingId: string;
@@ -16,9 +13,34 @@ interface TranscriptionMessage {
 export class AudioProcessor {
   private static instance: AudioProcessor;
   private isProcessing: boolean = false;
+  private wsServer: Server;
+  private wsClients: Map<string, WebSocket>;
 
   private constructor() {
-    // 싱글톤 패턴
+    this.wsClients = new Map();
+    this.wsServer = new WebSocket.Server({ port: 8080 });
+    this.setupWebSocketServer();
+  }
+
+  private setupWebSocketServer() {
+    this.wsServer.on('connection', (ws, req) => {
+      const meetingId = this.getMeetingIdFromUrl(req.url);
+      if (!meetingId) {
+        ws.close();
+        return;
+      }
+
+      this.wsClients.set(meetingId, ws);
+      
+      ws.on('close', () => {
+        this.wsClients.delete(meetingId);
+      });
+
+      ws.on('error', () => {
+        this.wsClients.delete(meetingId);
+        ws.close();
+      });
+    });
   }
 
   static getInstance(): AudioProcessor {
@@ -28,67 +50,77 @@ export class AudioProcessor {
     return AudioProcessor.instance;
   }
 
-  // 오슈머 시작
   async startProcessing() {
     if (this.isProcessing) return;
-    
+
     try {
       await consumer.connect();
       await consumer.subscribe({ 
-        topics: [KAFKA_TOPICS.TRANSCRIPTION.COMPLETED] 
+        topics: [KAFKA_TOPICS.TRANSCRIPTION.COMPLETED],
+        fromBeginning: false 
       });
-      
+
       await consumer.run({
-        eachMessage: async ({ topic, message }) => {
-          if (topic === KAFKA_TOPICS.TRANSCRIPTION.COMPLETED) {
-            console.log("=".repeat(50));
-            console.log("Received transcription from Whisper:");
-            const data = JSON.parse(message.value?.toString() || '');
-            console.log("Meeting ID:", data.meetingId);
-            console.log("Transcript:", data.transcript);
-            console.log("=".repeat(50));
-            await this.processTranscriptionMessage(message);
-          }
-        }
+        eachMessage: async ({ topic, partition, message }) => {
+          if (!message.value) return;
+          await this.processTranscriptionMessage(message);
+        },
       });
-      
+
       this.isProcessing = true;
       console.log('Audio processor started');
-      
     } catch (error) {
-      console.error('Error in audio processor:', error);
+      console.error('Error starting audio processor:', error);
       throw error;
     }
   }
 
   private async processTranscriptionMessage(message: any) {
-    console.log('[AudioProcessor] Processing transcription message');
+    if (!message?.value) {
+      console.error('[AudioProcessor] Empty message received');
+      return;
+    }
+
     try {
-      const transcriptionMessage: TranscriptionMessage = JSON.parse(message.value?.toString() || '');
-      console.log(`[AudioProcessor] Parsed transcription for meeting: ${transcriptionMessage.meetingId}`);
+      const transcriptionMessage: TranscriptionMessage = JSON.parse(message.value.toString());
       
-      await prisma.meeting.update({
-        where: { id: transcriptionMessage.meetingId },
-        data: { transcript: transcriptionMessage.transcript }
-      });
-      console.log(`[AudioProcessor] Updated transcript in database for meeting: ${transcriptionMessage.meetingId}`);
+      if (!this.isValidTranscriptionMessage(transcriptionMessage)) {
+        console.error('[AudioProcessor] Invalid message format:', transcriptionMessage);
+        return;
+      }
+
+      await this.updateDatabase(transcriptionMessage);
+      this.broadcastTranscription(transcriptionMessage);
+      
     } catch (error) {
-      console.error('[AudioProcessor] Error processing transcription:', error);
-      throw error;
+      console.error('[AudioProcessor] Error processing message:', error);
     }
   }
 
-  // 컨슈머 중지
-  async stopProcessing() {
-    if (!this.isProcessing) return;
-    
-    try {
-      await consumer.disconnect();
-      this.isProcessing = false;
-      console.log('Audio processor stopped');
-    } catch (error) {
-      console.error('Error stopping audio processor:', error);
-      throw error;
+  private isValidTranscriptionMessage(msg: any): msg is TranscriptionMessage {
+    return msg?.meetingId && msg?.transcript && msg?.timestamp;
+  }
+
+  private async updateDatabase(msg: TranscriptionMessage) {
+    await prisma.meeting.update({
+      where: { id: msg.meetingId },
+      data: { transcript: msg.transcript }
+    });
+  }
+
+  private getMeetingIdFromUrl(url: string | undefined): string | null {
+    if (!url) return null;
+    const match = url.match(/\/ws\/([^\/]+)/);
+    return match ? match[1] : null;
+  }
+
+  private broadcastTranscription(transcriptionMessage: TranscriptionMessage): void {
+    const ws = this.wsClients.get(transcriptionMessage.meetingId);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        transcript: transcriptionMessage.transcript,
+        timestamp: transcriptionMessage.timestamp
+      }));
     }
   }
 }

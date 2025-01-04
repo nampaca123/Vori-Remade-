@@ -19,39 +19,37 @@ class KafkaClient:
             value_deserializer=lambda v: json.loads(v.decode('utf-8'))
         )
     
+    async def start(self):
+        await self.producer.start()
+        await self.consumer.start()
+        
+    async def stop(self):
+        await self.producer.stop()
+        await self.consumer.stop()
+    
     async def start_consuming(self, whisper_service):
         try:
-            await self.producer.start()
-            await self.consumer.start()
-            
+            await self.start()
             async for msg in self.consumer:
-                try:
-                    await self.process_audio(msg, whisper_service)
-                except Exception as e:
-                    logger.error(f"Error processing message: {str(e)}")
-                    
+                await self.process_audio(msg, whisper_service)
         except Exception as e:
-            logger.error(f"Kafka connection error: {str(e)}")
+            logger.error(f"Error in consumer loop: {str(e)}")
+            raise
         finally:
-            await self.close()
+            await self.stop()
     
     async def process_audio(self, msg, whisper_service):
         try:
-            # 메시지에서 오디오 데이터 추출 및 처리
             audio_data = msg.value.get('audioData')
             meeting_id = msg.value.get('meetingId')
             
             if not audio_data or not meeting_id:
-                raise ValueError("Invalid message format")
+                logger.error("Invalid message format")
+                return
                 
-            logger.info("="*50)
-            logger.info(f"Processing audio for meeting: {meeting_id}")
-            
             result = await whisper_service.transcribe(audio_data)
-            logger.info(f"Whisper transcription result: {result}")
             
-            # 처리 결과를 다른 토픽으로 전송
-            logger.info(f"Sending transcription to Kafka topic: {KAFKA_TOPICS['TRANSCRIPTION']['COMPLETED']}")
+            # Kafka로 결과 전송
             await self.producer.send_and_wait(
                 KAFKA_TOPICS["TRANSCRIPTION"]["COMPLETED"],
                 {
@@ -60,15 +58,8 @@ class KafkaClient:
                     "timestamp": msg.timestamp
                 }
             )
-            logger.info("="*50)
+            logger.info(f"Sent transcription result to Kafka for meeting: {meeting_id}")
             
         except Exception as e:
             logger.error(f"Failed to process audio: {str(e)}")
-            raise
-    
-    async def close(self):
-        try:
-            await self.producer.stop()
-            await self.consumer.stop()
-        except Exception as e:
-            logger.error(f"Error closing Kafka client: {str(e)}") 
+            raise 

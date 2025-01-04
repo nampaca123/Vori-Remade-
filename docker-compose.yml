@@ -29,7 +29,6 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CREATE_TOPICS: "audio.raw:1:1,audio.processed:1:1,transcription.pending:1:1,transcription.completed:1:1"
     depends_on:
       - zookeeper
     volumes:
@@ -43,6 +42,10 @@ services:
     environment:
       KAFKA_BROKERS: "kafka:9092"
       DATABASE_URL: "postgresql://vori:voripassword@postgres:5432/vori_db"
+      NODE_ENV: "development"
+    volumes:
+      - .:/app
+      - /app/node_modules
     depends_on:
       - kafka
       - postgres

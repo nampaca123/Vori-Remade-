@@ -24,4 +24,4 @@ RUN npm run build
 EXPOSE 3000
 
 # 서버 실행 명령
-CMD ["npm", "start"] 
+CMD ["npm", "run", "dev"] 

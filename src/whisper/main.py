@@ -3,10 +3,18 @@ from fastapi import FastAPI
 from app.services.kafka import KafkaClient
 from app.services.whisper import WhisperService
 import logging
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(level=logging.DEBUG)
+# 로깅 설정 변경
+logging.basicConfig(
+    level=settings.LOG_LEVEL,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# aiokafka의 로깅 레벨만 WARNING으로 설정
+logging.getLogger('aiokafka').setLevel(logging.WARNING)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,7 +36,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Whisper Service",
     description="Kafka consumer for audio transcription using Whisper",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 @app.get("/health")
