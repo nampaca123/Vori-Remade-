@@ -6,10 +6,11 @@ import { KAFKA_TOPICS } from '../lib/kafka';
 import { performance } from 'perf_hooks';
 
 interface TranscriptionMessage {
-  meetingId: string;
+  meetingId: number;
+  audioId: number;
   transcript: string;
   timestamp: string;
-  metrics: {
+  metrics?: {
     kafkaDeliveryTime: number;
     whisperProcessingTime: number;
     totalProcessingTime: number;
@@ -111,12 +112,15 @@ export class AudioProcessor {
   }
 
   private isValidTranscriptionMessage(msg: any): msg is TranscriptionMessage {
-    return msg?.meetingId && msg?.transcript && msg?.timestamp;
+    return msg?.meetingId && msg?.audioId && msg?.transcript && msg?.timestamp;
   }
 
   private async updateDatabase(msg: TranscriptionMessage) {
     await prisma.meeting.update({
-      where: { id: msg.meetingId },
+      where: { 
+        meetingId: msg.meetingId,
+        audioId: msg.audioId
+      },
       data: { transcript: msg.transcript }
     });
   }
@@ -128,7 +132,7 @@ export class AudioProcessor {
   }
 
   private broadcastTranscription(transcriptionMessage: TranscriptionMessage): void {
-    const ws = this.wsClients.get(transcriptionMessage.meetingId);
+    const ws = this.wsClients.get(String(transcriptionMessage.meetingId));
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
         transcript: transcriptionMessage.transcript,

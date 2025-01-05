@@ -10,21 +10,21 @@ const router = express.Router();
 router.post('/stream', async (req: Request, res: Response) => {
   const startTime = performance.now();
   try {
-    const { audioData, meetingId, title = "New Meeting", userId = "default-user" } = req.body;
+    const { audioData, audioId, meetingId } = req.body;
     
     // Meeting 존재 여부 확인
     let meeting = await prisma.meeting.findUnique({
-      where: { id: meetingId }
+      where: { audioId }
     });
 
     // Meeting이 없으면 생성
     if (!meeting) {
-      console.log(`[AudioRoutes] Creating new meeting with ID: ${meetingId}`);
+      console.log(`[AudioRoutes] Creating new meeting with audio ID: ${audioId}`);
       meeting = await prisma.meeting.create({
         data: {
-          id: meetingId,
-          title,
-          userId
+          audioId,
+          meetingId,
+          transcript: null
         }
       });
       console.log(`[AudioRoutes] Created new meeting:`, meeting);
@@ -33,15 +33,16 @@ router.post('/stream', async (req: Request, res: Response) => {
     // Kafka로 raw 오디오 데이터 전송
     await sendMessage(KAFKA_TOPICS.AUDIO.RAW, {
       meetingId,
+      audioId,
       audioData,
       timestamp: new Date().toISOString()
     });
 
     console.log(`[AudioRoutes] Time to process and send to Kafka: ${performance.now() - startTime}ms`);
 
-    // 즉시 응답
     res.status(202).json({ 
       message: 'Audio processing started', 
+      audioId,
       meetingId 
     });
     

@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y openssl
 
 # package.json과 package-lock.json 복사
 COPY package*.json ./
+COPY tsconfig.json ./
 
 # 프로젝트 의존성 설치
 RUN npm install

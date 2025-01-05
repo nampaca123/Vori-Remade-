@@ -16,25 +16,21 @@ datasource db {
 
 // 회의 모델
 model Meeting {
-  id          String   @id
-  title       String
-  audioUrl    String?
+  audioId     Int      @id
+  meetingId   Int
   transcript  String?
-  summary     String?
-  userId      String   // Firebase UID를 저장
-  tickets     Ticket[]
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  @@index([meetingId])
 }
 
 // 티켓 모델
 model Ticket {
-  id          String   @id @default(uuid())
+  ticketId    String   @id @default(uuid())
   title       String
   content     String
   status      String   @default("TODO")
-  meetingId   String
-  meeting     Meeting  @relation(fields: [meetingId], references: [id])
+  meetingId   Int      // Meeting의 meetingId 참조
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

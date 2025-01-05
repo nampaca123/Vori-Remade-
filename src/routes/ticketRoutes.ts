@@ -28,7 +28,7 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
   
   try {
     const ticket = await prisma.ticket.update({
-      where: { id },
+      where: { ticketId: id },
       data: { status }
     });
     res.json(ticket);

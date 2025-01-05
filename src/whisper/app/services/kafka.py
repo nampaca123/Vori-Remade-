@@ -46,9 +46,10 @@ class KafkaClient:
         try:
             audio_data = msg.value.get('audioData')
             meeting_id = msg.value.get('meetingId')
-            message_timestamp = msg.value.get('timestamp')  # ISO 형식 문자열
+            audio_id = msg.value.get('audioId')
+            message_timestamp = msg.value.get('timestamp')
             
-            if not audio_data or not meeting_id:
+            if not audio_data or not meeting_id or not audio_id:
                 logger.error("Invalid message format")
                 return
             
@@ -69,6 +70,7 @@ class KafkaClient:
                 KAFKA_TOPICS["TRANSCRIPTION"]["COMPLETED"],
                 {
                     "meetingId": meeting_id,
+                    "audioId": audio_id,
                     "transcript": result,
                     "timestamp": msg.timestamp,
                     "metrics": {

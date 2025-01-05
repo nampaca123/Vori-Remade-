@@ -1,23 +1,30 @@
 import express, { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import crypto from 'crypto';
 
 const router = express.Router();
 
 // 회의 생성
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { title, userId } = req.body;
+    const { audioId, meetingId } = req.body;
+    
+    if (!audioId || !meetingId) {
+      res.status(400).json({ error: 'audioId and meetingId are required' });
+      return;
+    }
+
     const meeting = await prisma.meeting.create({
       data: {
-        id: crypto.randomUUID(),
-        title,
-        userId
+        audioId,
+        meetingId,
+        transcript: null
       }
     });
     res.json(meeting);
+    return;
   } catch (error) {
-    res.status(400).json({ error: '회의 생성 실패' });
+    res.status(400).json({ error: 'Failed to create meeting' });
+    return;
   }
 });
 
@@ -25,13 +32,18 @@ router.post('/', async (req: Request, res: Response) => {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const meetings = await prisma.meeting.findMany({
-      include: { 
-        tickets: true  // user 대신 tickets만 include
+      select: {
+        audioId: true,
+        meetingId: true,
+        transcript: true,
+        createdAt: true
       }
     });
     res.json(meetings);
+    return;
   } catch (error) {
-    res.status(500).json({ error: '회의 목록 조회 실패' });
+    res.status(500).json({ error: 'Failed to fetch meetings' });
+    return;
   }
 });
 
