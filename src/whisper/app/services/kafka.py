@@ -3,6 +3,7 @@ from app.core.config import settings
 from app.core.kafka_topics import KAFKA_TOPICS
 import json
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,11 @@ class KafkaClient:
             await self.stop()
     
     async def process_audio(self, msg, whisper_service):
+        start_time = time.time()
+        
+        processing_start_time = msg.value.get('processingStartTime', start_time * 1000) / 1000
+        kafka_processing_time = start_time - processing_start_time
+        
         try:
             audio_data = msg.value.get('audioData')
             meeting_id = msg.value.get('meetingId')
@@ -47,18 +53,31 @@ class KafkaClient:
                 logger.error("Invalid message format")
                 return
                 
+            whisper_start_time = time.time()
             result = await whisper_service.transcribe(audio_data)
+            whisper_processing_time = time.time() - whisper_start_time
             
-            # Kafka로 결과 전송
+            total_time = time.time() - start_time
+            
             await self.producer.send_and_wait(
                 KAFKA_TOPICS["TRANSCRIPTION"]["COMPLETED"],
                 {
                     "meetingId": meeting_id,
                     "transcript": result,
-                    "timestamp": msg.timestamp
+                    "timestamp": msg.timestamp,
+                    "metrics": {
+                        "kafkaDeliveryTime": kafka_processing_time,
+                        "whisperProcessingTime": whisper_processing_time,
+                        "totalProcessingTime": total_time
+                    }
                 }
             )
-            logger.info(f"Sent transcription result to Kafka for meeting: {meeting_id}")
+            logger.info(f"""
+                Processing times for meeting {meeting_id}:
+                Kafka delivery time: {kafka_processing_time:.2f}s
+                Whisper processing time: {whisper_processing_time:.2f}s
+                Total processing time: {total_time:.2f}s
+            """)
             
         except Exception as e:
             logger.error(f"Failed to process audio: {str(e)}")
