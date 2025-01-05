@@ -34,8 +34,7 @@ router.post('/stream', async (req: Request, res: Response) => {
     await sendMessage(KAFKA_TOPICS.AUDIO.RAW, {
       meetingId,
       audioData,
-      timestamp: new Date().toISOString(),
-      processingStartTime: startTime
+      timestamp: new Date().toISOString()
     });
 
     console.log(`[AudioRoutes] Time to process and send to Kafka: ${performance.now() - startTime}ms`);

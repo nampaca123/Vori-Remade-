@@ -4,6 +4,7 @@ from app.core.kafka_topics import KAFKA_TOPICS
 import json
 import logging
 import time
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -42,17 +43,22 @@ class KafkaClient:
     async def process_audio(self, msg, whisper_service):
         start_time = time.time()
         
-        processing_start_time = msg.value.get('processingStartTime', start_time * 1000) / 1000
-        kafka_processing_time = start_time - processing_start_time
-        
         try:
             audio_data = msg.value.get('audioData')
             meeting_id = msg.value.get('meetingId')
+            message_timestamp = msg.value.get('timestamp')  # ISO 형식 문자열
             
             if not audio_data or not meeting_id:
                 logger.error("Invalid message format")
                 return
-                
+            
+            # ISO 문자열을 timestamp로 변환
+            if message_timestamp:
+                processing_start_time = datetime.fromisoformat(message_timestamp.replace('Z', '+00:00')).timestamp()
+                kafka_processing_time = start_time - processing_start_time
+            else:
+                kafka_processing_time = 0
+            
             whisper_start_time = time.time()
             result = await whisper_service.transcribe(audio_data)
             whisper_processing_time = time.time() - whisper_start_time
