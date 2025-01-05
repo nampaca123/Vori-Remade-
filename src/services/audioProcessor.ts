@@ -3,11 +3,17 @@ import { Server } from 'ws';
 import { prisma } from '../lib/prisma';
 import { consumer } from '../lib/kafka';
 import { KAFKA_TOPICS } from '../lib/kafka';
+import { performance } from 'perf_hooks';
 
 interface TranscriptionMessage {
   meetingId: string;
   transcript: string;
   timestamp: string;
+  metrics: {
+    kafkaDeliveryTime: number;
+    whisperProcessingTime: number;
+    totalProcessingTime: number;
+  };
 }
 
 export class AudioProcessor {
@@ -81,26 +87,24 @@ export class AudioProcessor {
   }
 
   private async processTranscriptionMessage(message: any) {
-    if (!message?.value) {
-      console.error('[AudioProcessor] Empty message received');
-      return;
-    }
-
+    const startTime = performance.now();
+    
     try {
-      const transcriptionMessage: TranscriptionMessage = JSON.parse(message.value.toString());
-      console.log('[AudioProcessor] Processing transcription:', transcriptionMessage.meetingId);
+      const transcriptionMessage = JSON.parse(message.value.toString());
+      const { metrics } = transcriptionMessage;
       
-      if (!this.isValidTranscriptionMessage(transcriptionMessage)) {
-        console.error('[AudioProcessor] Invalid message format:', transcriptionMessage);
-        return;
-      }
-
       await this.updateDatabase(transcriptionMessage);
-      console.log('[AudioProcessor] Updated database for meeting:', transcriptionMessage.meetingId);
+      const dbUpdateTime = performance.now() - startTime;
+      
+      console.log(`
+        [AudioProcessor] Processing times for meeting ${transcriptionMessage.meetingId}:
+        Kafka to Whisper: ${metrics.kafkaDeliveryTime.toFixed(2)}s
+        Whisper processing: ${metrics.whisperProcessingTime.toFixed(2)}s
+        Database update: ${dbUpdateTime.toFixed(2)}ms
+        Total time: ${metrics.totalProcessingTime.toFixed(2)}s
+      `);
       
       this.broadcastTranscription(transcriptionMessage);
-      console.log('[AudioProcessor] Broadcasted transcription to WebSocket clients');
-      
     } catch (error) {
       console.error('[AudioProcessor] Error processing message:', error);
     }

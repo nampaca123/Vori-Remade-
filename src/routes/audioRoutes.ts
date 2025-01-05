@@ -2,11 +2,13 @@ import express, { Request, Response } from 'express';
 import { sendMessage } from '../lib/kafka';
 import { KAFKA_TOPICS } from '../lib/kafka';
 import { prisma } from '../lib/prisma';
+import { performance } from 'perf_hooks';
 
 const router = express.Router();
 
 // 오디오 스트림 처리
 router.post('/stream', async (req: Request, res: Response) => {
+  const startTime = performance.now();
   try {
     const { audioData, meetingId, title = "New Meeting", userId = "default-user" } = req.body;
     
@@ -34,6 +36,8 @@ router.post('/stream', async (req: Request, res: Response) => {
       audioData,
       timestamp: new Date().toISOString()
     });
+
+    console.log(`[AudioRoutes] Time to process and send to Kafka: ${performance.now() - startTime}ms`);
 
     // 즉시 응답
     res.status(202).json({ 

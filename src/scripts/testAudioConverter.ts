@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import util from 'util';
 
+// npx ts-node src/scripts/testAudioConverter.ts 명령어로 실행
+
 const execAsync = util.promisify(exec);
 
 const convertAndEncodeAudio = async (inputPath: string) => {

@@ -3,6 +3,8 @@ from app.core.config import settings
 from app.core.kafka_topics import KAFKA_TOPICS
 import json
 import logging
+import time
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -39,26 +41,49 @@ class KafkaClient:
             await self.stop()
     
     async def process_audio(self, msg, whisper_service):
+        start_time = time.time()
+        
         try:
             audio_data = msg.value.get('audioData')
             meeting_id = msg.value.get('meetingId')
+            message_timestamp = msg.value.get('timestamp')  # ISO 형식 문자열
             
             if not audio_data or not meeting_id:
                 logger.error("Invalid message format")
                 return
-                
-            result = await whisper_service.transcribe(audio_data)
             
-            # Kafka로 결과 전송
+            # ISO 문자열을 timestamp로 변환
+            if message_timestamp:
+                processing_start_time = datetime.fromisoformat(message_timestamp.replace('Z', '+00:00')).timestamp()
+                kafka_processing_time = start_time - processing_start_time
+            else:
+                kafka_processing_time = 0
+            
+            whisper_start_time = time.time()
+            result = await whisper_service.transcribe(audio_data)
+            whisper_processing_time = time.time() - whisper_start_time
+            
+            total_time = time.time() - start_time
+            
             await self.producer.send_and_wait(
                 KAFKA_TOPICS["TRANSCRIPTION"]["COMPLETED"],
                 {
                     "meetingId": meeting_id,
                     "transcript": result,
-                    "timestamp": msg.timestamp
+                    "timestamp": msg.timestamp,
+                    "metrics": {
+                        "kafkaDeliveryTime": kafka_processing_time,
+                        "whisperProcessingTime": whisper_processing_time,
+                        "totalProcessingTime": total_time
+                    }
                 }
             )
-            logger.info(f"Sent transcription result to Kafka for meeting: {meeting_id}")
+            logger.info(f"""
+                Processing times for meeting {meeting_id}:
+                Kafka delivery time: {kafka_processing_time:.2f}s
+                Whisper processing time: {whisper_processing_time:.2f}s
+                Total processing time: {total_time:.2f}s
+            """)
             
         except Exception as e:
             logger.error(f"Failed to process audio: {str(e)}")
