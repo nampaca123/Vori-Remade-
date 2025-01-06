@@ -13,14 +13,8 @@ export class MeetingService {
     this.ticketService = new TicketService(prisma, claudeClient);
   }
 
-  async createMeeting(audioId: number, meetingId: number) {
-    return this.prisma.meeting.create({
-      data: { audioId, meetingId, transcript: null }
-    });
-  }
-
   async processAudioStream(audioData: string, audioId: number, meetingId: number) {
-    // 1. 먼저 Kafka로 오디오 데이터 전송
+    // 1. Kafka로 오디오 데이터 전송
     await sendMessage(KAFKA_TOPICS.AUDIO.RAW, {
       meetingId,
       audioId,
@@ -28,7 +22,7 @@ export class MeetingService {
       timestamp: new Date().toISOString()
     });
 
-    // 2. Meeting 레코드 upsert (있으면 그대로 두고, 없으면 생성)
+    // 2. Meeting 레코드 upsert
     let meeting = await this.prisma.meeting.upsert({
       where: { audioId },
       update: {},  // 이미 존재하면 아무것도 업데이트하지 않음

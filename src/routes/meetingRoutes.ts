@@ -7,17 +7,6 @@ const router = express.Router();
 const claudeClient = new ClaudeClient(prisma);
 const meetingService = new MeetingService(prisma, claudeClient);
 
-// 회의 생성
-router.post('/', async (req, res) => {
-  try {
-    const { audioId, meetingId } = req.body;
-    const meeting = await meetingService.createMeeting(audioId, meetingId);
-    res.json(meeting);
-  } catch (error) {
-    res.status(400).json({ error: 'Failed to create meeting' });
-  }
-});
-
 // 회의 목록 조회
 router.get('/', async (req, res) => {
   try {
@@ -28,7 +17,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 오디오 스트림 처리
+// 오디오 스트림 처리 (회의 생성/업데이트 포함)
 router.post('/:id/stream', async (req, res) => {
   try {
     const meetingId = parseInt(req.params.id);
@@ -97,40 +86,6 @@ export default router;
 /**
  * @swagger
  * /api/meetings:
- *   post:
- *     summary: 새로운 회의 생성
- *     tags: [Meetings]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - audioId
- *               - meetingId
- *             properties:
- *               audioId:
- *                 type: number
- *                 example: 221
- *               meetingId:
- *                 type: number
- *                 example: 101
- *     responses:
- *       200:
- *         description: 회의가 성공적으로 생성됨
- *         content:
- *           application/json:
- *             example:
- *               audioId: 221
- *               meetingId: 101
- *               transcript: null
- *               createdAt: "2024-03-21T05:00:00.000Z"
- */
-
-/**
- * @swagger
- * /api/meetings:
  *   get:
  *     summary: 전체 회의 목록 조회
  *     tags: [Meetings]
@@ -144,17 +99,13 @@ export default router;
  *                 meetingId: 101
  *                 transcript: "회의 내용..."
  *                 createdAt: "2024-03-21T05:00:00.000Z"
- *               - audioId: 222
- *                 meetingId: 102
- *                 transcript: "다른 회의 내용..."
- *                 createdAt: "2024-03-21T06:00:00.000Z"
  */
 
 /**
  * @swagger
  * /api/meetings/{id}/stream:
  *   post:
- *     summary: 회의 오디오 스트림 처리
+ *     summary: 오디오 스트림 처리 (회의 생성/업데이트)
  *     tags: [Meetings]
  *     parameters:
  *       - in: path
@@ -183,7 +134,7 @@ export default router;
  *                 example: "GkXfo59ChoEBQveBAULygQRC..."
  *     responses:
  *       202:
- *         description: 오디오 처리 시작됨
+ *         description: 오디오 처리 시작됨 (회의 생성/업데이트 포함)
  *         content:
  *           application/json:
  *             example:
