@@ -240,7 +240,7 @@ VPC Endpoint를 생성하여 Lambda와 S3 간에 AWS 내부에서 프라이빗 �
 ### 주요 마이그레이션 포인트
 - AWS MSK → Apache Kafka (로컬)
 - AWS Transcribe → Whisper
-- AWS Bedrock → OpenAI GPT API
+- AWS Bedrock → Claude 3.5 API
 - AWS S3 → 로컬 파일 시스템
 - AWS Lambda → Express.js 엔드포인트
 
