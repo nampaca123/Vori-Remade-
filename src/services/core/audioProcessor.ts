@@ -1,8 +1,8 @@
 import WebSocket from 'ws';
 import { Server } from 'ws';
-import { prisma } from '../lib/prisma';
-import { consumer } from '../lib/kafka';
-import { KAFKA_TOPICS } from '../lib/kafka';
+import { prisma } from '../../lib/prisma';
+import { consumer } from '../../lib/kafka';
+import { KAFKA_TOPICS } from '../../lib/kafka';
 import { performance } from 'perf_hooks';
 
 interface TranscriptionMessage {

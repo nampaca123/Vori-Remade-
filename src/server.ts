@@ -1,6 +1,6 @@
 import app from './app';
 import { connectProducer, createTopics } from './lib/kafka';
-import { AudioProcessor } from './services/audioProcessor';
+import { AudioProcessor } from './services/core/audioProcessor';
 
 const PORT = process.env.PORT || 3000;
 

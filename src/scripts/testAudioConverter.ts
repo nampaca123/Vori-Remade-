@@ -36,12 +36,10 @@ const convertAndEncodeAudio = async (inputPath: string) => {
     const audioData = fs.readFileSync(webmPath);
     const encodedAudio = audioData.toString('base64');
 
-    // 4. 요청 데이터 생성 및 저장
+    // 4. API 요청 형식에 맞게 데이터 생성
     const requestData = {
-      meetingId: 101,
       audioId: 221,
-      audioData: encodedAudio,
-      timestamp: new Date().toISOString()
+      audioData: encodedAudio
     };
 
     const jsonPath = path.join(path.dirname(inputPath), 'encoded-audio.json');
@@ -52,18 +50,14 @@ const convertAndEncodeAudio = async (inputPath: string) => {
     console.log('Webm file:', webmPath);
     console.log('JSON file:', jsonPath);
     console.log('Original size:', (fs.statSync(inputPath).size / 1024 / 1024).toFixed(2), 'MB');
-    console.log('Webm size:', (fs.statSync(webmPath).size / 1024 / 1024).toFixed(2), 'MB');
-    console.log('Base64 length:', encodedAudio.length);
-    console.log('Sample of encoded data:', encodedAudio.slice(0, 100) + '...');
-
-    return {
-      webmPath,
-      jsonPath,
-      requestData
-    };
-
+    console.log('Encoded size:', (fs.statSync(jsonPath).size / 1024 / 1024).toFixed(2), 'MB');
+    
+    // 6. Postman 사용법 안내
+    console.log('\nPostman 사용 방법:');
+    console.log('1. URL: POST http://localhost:3000/api/meetings/101/stream');
+    console.log('2. Body: encoded-audio.json의 내용을 그대로 사용');
   } catch (error) {
-    console.error('Error processing audio:', error);
+    console.error('Error:', error);
     throw error;
   }
 };

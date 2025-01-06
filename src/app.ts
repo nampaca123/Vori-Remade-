@@ -3,8 +3,8 @@ import cors from 'cors';
 import { morganMW } from './middlewares/logger';
 import { errorHandlerMiddleware } from './middlewares/errorHandler';
 import meetingRoutes from './routes/meetingRoutes';
-import ticketRoutes from './routes/ticketRoutes';
-import audioRoutes from './routes/audioRoutes';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './config/swagger';
 
 const app = express();
 
@@ -15,9 +15,6 @@ app.use(morganMW);
 
 // 라우터
 app.use('/api/meetings', meetingRoutes);
-app.use('/api/tickets', ticketRoutes);
-app.use('/api/audio', audioRoutes);
-
 // 기본 라우트
 app.get('/', (req, res) => {
   res.send('VORI Backend Server');
@@ -25,5 +22,8 @@ app.get('/', (req, res) => {
 
 // 에러 핸들링 미들웨어
 app.use(errorHandlerMiddleware);
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 export default app;
