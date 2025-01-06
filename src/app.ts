@@ -3,6 +3,8 @@ import cors from 'cors';
 import { morganMW } from './middlewares/logger';
 import { errorHandlerMiddleware } from './middlewares/errorHandler';
 import meetingRoutes from './routes/meetingRoutes';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './config/swagger';
 
 const app = express();
 
@@ -20,5 +22,8 @@ app.get('/', (req, res) => {
 
 // 에러 핸들링 미들웨어
 app.use(errorHandlerMiddleware);
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 export default app;
