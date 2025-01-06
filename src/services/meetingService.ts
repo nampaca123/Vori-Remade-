@@ -50,13 +50,18 @@ export class MeetingService {
     return this.ticketService.createTicket(data);
   }
 
-  async updateTicketStatus(ticketId: string, status: TicketStatus, reason: string) {
-    return this.ticketService.updateTicketStatus(ticketId, status, reason);
-  }
-
   async getMeetings() {
     return this.prisma.meeting.findMany({
       orderBy: { createdAt: 'desc' }
     });
+  }
+
+  async updateTicket(ticketId: string, data: {
+    title?: string;
+    content?: string;
+    status?: TicketStatus;
+    reason?: string;
+  }) {
+    return this.ticketService.updateTicket(ticketId, data);
   }
 } 

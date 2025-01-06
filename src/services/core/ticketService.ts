@@ -95,30 +95,37 @@ export class TicketService {
     });
   }
 
-  async updateTicketStatus(ticketId: string, status: TicketStatus, reason: string) {
-    return this.prisma.$transaction(async (tx) => {
-      // 상태 변경 이력 생성
-      await tx.ticketStatusHistory.create({
-        data: {
-          ticketId,
-          oldStatus: (await tx.ticket.findUnique({ where: { ticketId } }))?.status || 'TODO',
-          newStatus: status,
-          reason
-        }
-      });
-
-      // 티켓 상태 업데이트
-      return tx.ticket.update({
-        where: { ticketId },
-        data: { status }
-      });
-    });
-  }
-
   async getTicketsByMeetingId(meetingId: number) {
     return this.prisma.ticket.findMany({
       where: { meetingId },
       orderBy: { createdAt: 'desc' }
     });
+  }
+
+  async updateTicket(ticketId: string, data: {
+    title?: string;
+    content?: string;
+    status?: TicketStatus;
+    reason?: string;
+  }) {
+    const ticket = await this.prisma.ticket.update({
+      where: { ticketId },
+      data: {
+        ...(data.title && { title: data.title }),
+        ...(data.content && { content: data.content }),
+        ...(data.status && { status: data.status })
+      }
+    });
+
+    // 상태가 변경된 경우 Kafka 이벤트 발행
+    if (data.status) {
+      await sendMessage(KAFKA_TOPICS.TICKET.UPDATED, {
+        ticketId,
+        status: data.status,
+        reason: data.reason
+      });
+    }
+
+    return ticket;
   }
 }
