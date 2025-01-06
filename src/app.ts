@@ -3,8 +3,6 @@ import cors from 'cors';
 import { morganMW } from './middlewares/logger';
 import { errorHandlerMiddleware } from './middlewares/errorHandler';
 import meetingRoutes from './routes/meetingRoutes';
-import ticketRoutes from './routes/ticketRoutes';
-import audioRoutes from './routes/audioRoutes';
 
 const app = express();
 
@@ -15,9 +13,6 @@ app.use(morganMW);
 
 // 라우터
 app.use('/api/meetings', meetingRoutes);
-app.use('/api/tickets', ticketRoutes);
-app.use('/api/audio', audioRoutes);
-
 // 기본 라우트
 app.get('/', (req, res) => {
   res.send('VORI Backend Server');

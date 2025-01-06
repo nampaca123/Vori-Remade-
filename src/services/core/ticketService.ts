@@ -1,6 +1,6 @@
 import { PrismaClient, TicketStatus, Ticket } from '@prisma/client';
 import { ClaudeClient, TicketSuggestion } from './claudeClient';
-import { sendMessage, KAFKA_TOPICS } from '../lib/kafka';
+import { sendMessage, KAFKA_TOPICS } from '../../lib/kafka';
 
 export class TicketService {
   constructor(
