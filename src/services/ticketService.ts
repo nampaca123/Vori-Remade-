@@ -1,4 +1,4 @@
-import { PrismaClient, Ticket } from '@prisma/client';
+import { PrismaClient, TicketStatus, Ticket } from '@prisma/client';
 import { ClaudeClient, TicketSuggestion } from './claudeClient';
 import { sendMessage, KAFKA_TOPICS } from '../lib/kafka';
 
@@ -78,5 +78,47 @@ export class TicketService {
       console.error('Error in processTranscript:', error);
       throw error;
     }
+  }
+
+  async createTicket({ title, content, meetingId }: { 
+    title: string; 
+    content: string; 
+    meetingId: number; 
+  }) {
+    return this.prisma.ticket.create({
+      data: {
+        title,
+        content,
+        meetingId,
+        status: 'TODO'
+      }
+    });
+  }
+
+  async updateTicketStatus(ticketId: string, status: TicketStatus, reason: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // 상태 변경 이력 생성
+      await tx.ticketStatusHistory.create({
+        data: {
+          ticketId,
+          oldStatus: (await tx.ticket.findUnique({ where: { ticketId } }))?.status || 'TODO',
+          newStatus: status,
+          reason
+        }
+      });
+
+      // 티켓 상태 업데이트
+      return tx.ticket.update({
+        where: { ticketId },
+        data: { status }
+      });
+    });
+  }
+
+  async getTicketsByMeetingId(meetingId: number) {
+    return this.prisma.ticket.findMany({
+      where: { meetingId },
+      orderBy: { createdAt: 'desc' }
+    });
   }
 }

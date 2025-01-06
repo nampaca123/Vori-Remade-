@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient, Ticket } from '@prisma/client';
 
 export interface TicketSuggestion {
+  ticketId: string;
   title: string;
   content: string;
   status: 'TODO' | 'IN_PROGRESS' | 'DONE';
@@ -11,6 +12,7 @@ export interface TicketSuggestion {
 export interface TicketUpdate {
   ticketId: string;
   newStatus: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  reason: string;
 }
 
 export interface TranscriptAnalysis {
@@ -25,8 +27,8 @@ export interface TranscriptAnalysis {
 
 export class ClaudeClient {
   private client: Anthropic;
-
-  constructor() {
+  
+  constructor(private prisma: PrismaClient) {
     const apiKey = process.env.CLAUDE_API_KEY;
     if (!apiKey) {
       throw new Error('CLAUDE_API_KEY is not set in environment variables');
@@ -129,13 +131,24 @@ ${transcript}
     });
 
     const result = JSON.parse((response.content[0] as { type: string, text: string }).text);
-    await this.saveMeetingMetrics(result.meetingMetrics);
+    await this.saveMeetingMetrics(result.meetingMetrics, result.meetingId);
     
     return result;
   }
 
-  private async saveMeetingMetrics(metrics: any) {
-    // TODO: Implement metrics saving logic
-    // This will be used for Spark Streaming analysis later
+  private async saveMeetingMetrics(metrics: TranscriptAnalysis['meetingMetrics'], meetingId: number) {
+    try {
+      await this.prisma.meetingMetrics.create({
+        data: {
+          meetingId,
+          actionableItemsCount: metrics.actionableItemsCount,
+          statusUpdatesCount: metrics.statusUpdatesCount,
+          blockersMentioned: metrics.blockersMentioned
+        }
+      });
+    } catch (error) {
+      console.error('Failed to save meeting metrics:', error);
+      // 메트릭스 저장 실패는 전체 프로세스를 중단시키지 않음
+    }
   }
 }

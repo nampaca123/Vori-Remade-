@@ -47,6 +47,7 @@ services:
       KAFKA_BROKERS: "kafka:9092"
       DATABASE_URL: "postgresql://vori:voripassword@postgres:5432/vori_db"
       NODE_ENV: "development"
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY}
     volumes:
       - .:/app
       - /app/node_modules

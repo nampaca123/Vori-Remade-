@@ -24,13 +24,43 @@ model Meeting {
   @@index([meetingId])
 }
 
+enum TicketStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
 // 티켓 모델
 model Ticket {
-  ticketId    String   @id @default(uuid())
+  ticketId    String       @id @default(uuid())
   title       String
   content     String
-  status      String   @default("TODO")
-  meetingId   Int      // Meeting의 meetingId 참조
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      TicketStatus @default(TODO)
+  meetingId   Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// 티켓 상태 변경 이력
+model TicketStatusHistory {
+  historyId   Int          @id @default(autoincrement())
+  ticketId    String       // Ticket 참조
+  oldStatus   TicketStatus
+  newStatus   TicketStatus
+  reason      String       // 상태 변경 이유 (예: "회의 중 완료 보고됨")
+  changedAt   DateTime     @default(now())
+
+  @@index([ticketId])
+}
+
+// 회의 메트릭스 모델
+model MeetingMetrics {
+  metricsId           Int      @id @default(autoincrement())
+  meetingId           Int      
+  actionableItemsCount Int
+  statusUpdatesCount   Int
+  blockersMentioned    Int
+  createdAt           DateTime @default(now())
+
+  @@index([meetingId])
 }
