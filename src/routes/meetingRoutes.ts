@@ -67,15 +67,20 @@ router.post('/:id/tickets', async (req, res) => {
   }
 });
 
-// 티켓 상태 업데이트
-router.patch('/:id/tickets/:ticketId/status', async (req, res) => {
+// 티켓 수정
+router.patch('/:id/tickets/:ticketId', async (req, res) => {
   try {
     const { ticketId } = req.params;
-    const { status, reason } = req.body;
-    const ticket = await meetingService.updateTicketStatus(ticketId, status, reason);
+    const { title, content, status, reason } = req.body;
+    const ticket = await meetingService.updateTicket(ticketId, {
+      title,
+      content,
+      status,
+      reason
+    });
     res.json(ticket);
   } catch (error) {
-    res.status(400).json({ error: 'Failed to update ticket status' });
+    res.status(400).json({ error: 'Failed to update ticket' });
   }
 });
 
@@ -253,9 +258,9 @@ export default router;
 
 /**
  * @swagger
- * /api/meetings/{id}/tickets/{ticketId}/status:
+ * /api/meetings/{id}/tickets/{ticketId}:
  *   patch:
- *     summary: 티켓 상태 업데이트
+ *     summary: 티켓 수정
  *     tags: [Meetings]
  *     parameters:
  *       - in: path
@@ -279,9 +284,17 @@ export default router;
  *           schema:
  *             type: object
  *             required:
+ *               - title
+ *               - content
  *               - status
  *               - reason
  *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "API 문서화"
+ *               content:
+ *                 type: string
+ *                 example: "REST API 문서 작성 필요"
  *               status:
  *                 type: string
  *                 enum: [TODO, IN_PROGRESS, DONE]
@@ -291,7 +304,7 @@ export default router;
  *                 example: "Development started"
  *     responses:
  *       200:
- *         description: 티켓 상태 업데이트 성공
+ *         description: 티켓 수정 성공
  *         content:
  *           application/json:
  *             example:
