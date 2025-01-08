@@ -342,6 +342,13 @@ PostgreSQL
 - Java Runtime Environment 11+
 - CUDA 지원 GPU (선택사항)
 
+### 기술 스택
+- **Next.js**: React 기반의 프레임워크
+- **Tailwind CSS**: 스타일링
+- **Firebase**: 인증 및 배포
+- **React DnD**: 칸반보드 드래그 앤 드롭
+- **WebSocket**: 실시간 음성 스트리밍 및 티켓 업데이트
+
 ## 주요 기능
 
 ### 실시간 음성 처리
@@ -558,6 +565,152 @@ Spark Streaming과 Kafka를 활용하여 실시간 회의 데이터를 분석하
    - 새로운 분석 지표 쉽게 추가 가능
    - 다양한 데이터 소스 통합 용이
    - 실시간/배치 처리 유연한 전환
+
+## 프론트엔드 개발 계획
+
+### 기술 스택
+- **Next.js**: React 기반의 프레임워크
+- **Tailwind CSS**: 스타일링
+- **Firebase**: 인증 및 배포
+- **React DnD**: 칸반보드 드래그 앤 드롭
+- **WebSocket**: 실시간 음성 스트리밍 및 티켓 업데이트
+
+### 주요 화면 구성
+
+#### 1. 로그인 화면 (`/login`)
+- Firebase Authentication 통합
+  - Google 로그인
+  - Microsoft/Outlook 로그인
+- 반응형 디자인 (모바일 지원)
+- 로그인 상태 유지
+- 보안 라우팅 (인증되지 않은 접근 차단)
+
+#### 2. 관리 화면 (`/dashboard`)
+- 헤더
+  - 로고 및 네비게이션
+  - 사용자 프로필 드롭다운
+  - 새 회의 시작 버튼
+- 회의 목록
+  - 날짜별 그룹핑
+  - 회의별 요약 정보
+    - 생성된 티켓 수
+    - 상태별 티켓 분포
+    - 주요 결정사항
+  - 검색 및 필터링
+  - 무한 스크롤 구현
+
+#### 3. 칸반보드 화면 (`/board/:meetingId`)
+- 회의 컨트롤
+  - 음성 녹음 시작/중지
+  - 실시간 트랜스크립트 표시
+  - 회의 종료 버튼
+- 칸반보드
+  - 상태별 컬럼 (TODO, IN_PROGRESS, DONE)
+  - 드래그 앤 드롭으로 상태 변경
+  - 티켓 CRUD 기능
+  - 실시간 업데이트
+- 통계 및 인사이트
+  - 회의 진행 시간
+  - 생성된 티켓 수
+  - 상태 변경 이력
+
+### 개발 단계
+
+#### 1단계: 프로젝트 셋업
+```bash
+# 프로젝트 생성
+npx create-next-app@latest vori-frontend --typescript --tailwind --eslint
+
+# 필요한 패키지 설치
+npm install firebase react-dnd react-dnd-html5-backend socket.io-client
+```
+
+#### 2단계: Firebase 설정
+- Firebase 프로젝트 생성
+- Authentication 설정
+  - Google 로그인 활성화
+  - Microsoft 로그인 활성화 (Azure Portal 설정 포함)
+- 환경 변수 설정
+
+#### 3단계: 컴포넌트 구조
+
+```
+/
+├── src/                # 백엔드 서버
+│   ├── whisper/       # Whisper 음성인식 서버
+│   │   └── ...
+│   ├── lib/           # 공통 유틸리티 (Kafka 등)
+│   │   └── ...
+│   ├── services/      # 비즈니스 로직
+│   │   └── ...
+│   └── routes/        # API 라우트
+│       └── ...
+│
+├── gui/               # 프론트엔드
+│   ├── src/          # 소스 코드
+│   │   ├── components/    # React 컴포넌트
+│   │   │   ├── auth/
+│   │   │   │   ├── LoginButton.tsx
+│   │   │   │   └── AuthGuard.tsx
+│   │   │   ├── dashboard/
+│   │   │   │   ├── MeetingList.tsx
+│   │   │   │   └── MeetingCard.tsx
+│   │   │   ├── board/
+│   │   │   │   ├── KanbanBoard.tsx
+│   │   │   │   ├── TicketCard.tsx
+│   │   │   │   └── RecordingControl.tsx
+│   │   │   └── common/
+│   │   │       ├── Header.tsx
+│   │   │       └── Layout.tsx
+│   │   ├── hooks/        # 커스텀 훅
+│   │   │   ├── useAuth.ts
+│   │   │   ├── useMeetings.ts
+│   │   │   └── useTickets.ts
+│   │   └── services/     # API 통신
+│   │       ├── api.ts
+│   │       └── socket.ts
+│   ├── public/       # 정적 파일
+│   └── ...           # 설정 파일들
+```
+
+#### 4단계: API 연동
+- Axios 인스턴스 설정
+- API 엔드포인트 정의
+- 타입 정의
+- 에러 처리
+
+#### 5단계: 실시간 기능
+- WebSocket 연결 설정
+- 음성 스트리밍 구현
+- 실시간 티켓 업데이트
+
+### 코드 품질 관리
+- ESLint 규칙 설정
+- Prettier 포맷팅
+- TypeScript 엄격 모드
+- 컴포넌트 문서화
+
+### 성능 최적화
+- 이미지 최적화
+- 코드 스플리팅
+- 레이지 로딩
+- 메모이제이션
+
+### 배포 계획
+- Vercel 배포
+- 환경별 설정 (개발/스테이징/프로덕션)
+- CI/CD 파이프라인
+
+### 테스트 전략
+- Jest 단위 테스트
+- React Testing Library 컴포넌트 테스트
+- Cypress E2E 테스트
+
+### 접근성 (A11y)
+- ARIA 레이블
+- 키보드 네비게이션
+- 스크린 리더 지원
+- 고대비 모드 지원
 
 ## 설치 방법
 (추후 작성 예정)

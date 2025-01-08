@@ -1,12 +1,16 @@
 import app from './app';
 import { connectProducer, createTopics } from './lib/kafka';
 import { AudioProcessor } from './services/core/audioProcessor';
+import { initializeDatabase } from './lib/prisma';
 
 const PORT = process.env.PORT || 3000;
 
 // 서버 시작 전 Kafka 설정
 const startServer = async () => {
   try {
+    // DB 초기화 추가
+    await initializeDatabase();
+    
     // Kafka 토픽 생성
     await createTopics();
     

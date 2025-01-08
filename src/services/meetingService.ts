@@ -2,6 +2,7 @@ import { PrismaClient, TicketStatus } from '@prisma/client';
 import { ClaudeClient } from './core/claudeClient';
 import { TicketService } from './core/ticketService';
 import { sendMessage, KAFKA_TOPICS } from '../lib/kafka';
+import { CustomError } from '../middlewares/errorHandler';
 
 export class MeetingService {
   private ticketService: TicketService;
@@ -13,8 +14,18 @@ export class MeetingService {
     this.ticketService = new TicketService(prisma, claudeClient);
   }
 
-  async processAudioStream(audioData: string, audioId: number, meetingId: number) {
-    // 1. Kafka로 오디오 데이터 전송
+  async processAudioStream(audioData: string, audioId: number, meetingId: number, userId: number) {
+    // 사용자의 그룹 확인
+    const userGroup = await this.prisma.groupMember.findFirst({
+      where: { userId },
+      select: { groupId: true }
+    });
+
+    if (!userGroup) {
+      throw new CustomError(404, 'User must belong to a group to create meetings');
+    }
+
+    // Kafka로 오디오 데이터 전송
     await sendMessage(KAFKA_TOPICS.AUDIO.RAW, {
       meetingId,
       audioId,
@@ -22,14 +33,15 @@ export class MeetingService {
       timestamp: new Date().toISOString()
     });
 
-    // 2. Meeting 레코드 upsert
+    // Meeting 레코드 생성/업데이트
     let meeting = await this.prisma.meeting.upsert({
       where: { audioId },
-      update: {},  // 이미 존재하면 아무것도 업데이트하지 않음
-      create: {    // 없으면 새로 생성
-        audioId, 
-        meetingId, 
-        transcript: null
+      update: {},
+      create: {
+        audioId,
+        meetingId,
+        transcript: null,
+        groupId: userGroup.groupId  // 하드코딩된 값 대신 사용자의 그룹 ID 사용
       }
     });
 
@@ -37,8 +49,49 @@ export class MeetingService {
   }
 
   async endMeeting(meetingId: number) {
-    // 회의 상태 업데이트 로직
-    const tickets = await this.ticketService.processTranscript(meetingId);
+    // 1. 미팅 정보 조회
+    const meeting = await this.prisma.meeting.findFirst({
+      where: { meetingId },
+      include: {
+        group: {
+          include: {
+            members: {
+              include: {
+                user: {
+                  select: {
+                    userId: true,
+                    name: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!meeting) {
+      throw new CustomError(404, 'Meeting not found');
+    }
+
+    // 2. 그룹 멤버 목록 추출
+    const groupMembers = meeting.group.members.map(member => ({
+      userId: member.user.userId,
+      name: member.user.name || 'Unknown'
+    }));
+
+    // 3. 기존 티켓 조회
+    const existingTickets = await this.ticketService.getTicketsByMeetingId(meetingId);
+
+    // 4. Claude 분석 요청
+    const analysis = await this.claudeClient.analyzeTranscript(
+      meeting.transcript || '',
+      existingTickets,
+      groupMembers
+    );
+
+    // 5. 분석 결과 처리
+    const tickets = await this.ticketService.processTranscript(meetingId, analysis);
     return tickets;
   }
 
@@ -46,7 +99,12 @@ export class MeetingService {
     return this.ticketService.getTicketsByMeetingId(meetingId);
   }
 
-  async createTicket(data: { title: string; content: string; meetingId: number }) {
+  async createTicket(data: { 
+    title: string; 
+    content: string; 
+    meetingId: number;
+    assigneeId?: number;
+  }) {
     return this.ticketService.createTicket(data);
   }
 
@@ -60,6 +118,7 @@ export class MeetingService {
     title?: string;
     content?: string;
     status?: TicketStatus;
+    assigneeId?: number;
     reason?: string;
   }) {
     return this.ticketService.updateTicket(ticketId, data);
