@@ -469,16 +469,21 @@ PostgreSQL
 ## 회의 분석 파이프라인
 
 ### 개요
-Spark Streaming과 Kafka를 활용하여 실시간 회의 데이터를 분석하고, 조직의 의사결정 패턴과 생산성을 측정하는 시스템입니다.
+PySpark와 Kafka를 활용하여 실시간 회의 데이터를 분석하고, 조직의 의사결정 패턴과 생산성을 측정하는 시스템입니다.
 
 src/
-├── analytics/              # 새로운 분석 모듈
-│   ├── spark/             # Spark 관련 코드
-│   │   ├── jobs/         # Spark 작업 정의
-│   │   ├── models/       # 분석 모델
-│   │   └── utils/        # 유틸리티 함수
-│   ├── metrics/           # 지표 계산 로직
-│   └── insights/          # 인사이트 생성 로직
+├── analytics/              # 분석 모듈
+│   ├── jobs/              # Spark 작업 정의
+│   │   ├── __init__.py
+│   │   ├── meeting_metrics.py    # 회의 지표 계산
+│   │   └── ticket_analysis.py    # 티켓 분석
+│   ├── models/            # 분석 모델
+│   │   ├── __init__.py
+│   │   └── productivity.py       # 생산성 점수 계산 모델
+│   └── utils/             # 유틸리티 함수
+│       ├── __init__.py
+│       ├── spark_session.py      # Spark 세션 관리
+│       └── kafka_utils.py        # Kafka 연동 유틸리티
 
 ### 데이터 수집 및 처리
 1. **실시간 데이터 소스** (Kafka 토픽)

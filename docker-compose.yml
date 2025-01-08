@@ -72,20 +72,33 @@ services:
       - ./src/whisper:/app
 
   spark-master:
-    image: bitnami/spark:latest
+    build: 
+      context: ./src/insights
+      dockerfile: Dockerfile
     environment:
       - SPARK_MODE=master
+      - JUPYTER_ENABLE_LAB=yes
     ports:
       - "8080:8080"  # Spark UI
       - "7077:7077"  # Spark 마스터
+      - "8888:8888"  # Jupyter 노트북
+    volumes:
+      - ./src/insights:/home/jovyan/work
+    depends_on:
+      - kafka
+      - postgres
     
   spark-worker:
-    image: bitnami/spark:latest
+    build: 
+      context: ./src/insights
+      dockerfile: Dockerfile
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
     depends_on:
       - spark-master
+    volumes:
+      - ./src/insights:/home/jovyan/work
 
 volumes:
   postgres_data: 
