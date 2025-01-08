@@ -22,7 +22,12 @@ router.post('/:id/stream', async (req, res) => {
   try {
     const meetingId = parseInt(req.params.id);
     const { audioData, audioId } = req.body;
-    const meeting = await meetingService.processAudioStream(audioData, audioId, meetingId);
+    const meeting = await meetingService.processAudioStream(
+      audioData, 
+      audioId, 
+      meetingId,
+      req.user.userId
+    );
     res.status(202).json({ message: 'Audio processing started', meeting });
   } catch (error) {
     res.status(500).json({ error: 'Failed to process audio' });

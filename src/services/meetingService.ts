@@ -14,8 +14,18 @@ export class MeetingService {
     this.ticketService = new TicketService(prisma, claudeClient);
   }
 
-  async processAudioStream(audioData: string, audioId: number, meetingId: number) {
-    // 1. Kafka로 오디오 데이터 전송
+  async processAudioStream(audioData: string, audioId: number, meetingId: number, userId: number) {
+    // 사용자의 그룹 확인
+    const userGroup = await this.prisma.groupMember.findFirst({
+      where: { userId },
+      select: { groupId: true }
+    });
+
+    if (!userGroup) {
+      throw new CustomError(404, 'User must belong to a group to create meetings');
+    }
+
+    // Kafka로 오디오 데이터 전송
     await sendMessage(KAFKA_TOPICS.AUDIO.RAW, {
       meetingId,
       audioId,
@@ -23,7 +33,7 @@ export class MeetingService {
       timestamp: new Date().toISOString()
     });
 
-    // 2. Meeting 레코드 upsert
+    // Meeting 레코드 생성/업데이트
     let meeting = await this.prisma.meeting.upsert({
       where: { audioId },
       update: {},
@@ -31,7 +41,7 @@ export class MeetingService {
         audioId,
         meetingId,
         transcript: null,
-        groupId: 1
+        groupId: userGroup.groupId  // 하드코딩된 값 대신 사용자의 그룹 ID 사용
       }
     });
 
