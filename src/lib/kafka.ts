@@ -80,13 +80,28 @@ export const createTopics = async () => {
       KAFKA_TOPICS.TICKET.EXTRACTED
     ];
 
-    await admin.createTopics({
-      topics: topics.map(topic => ({
-        topic,
-        numPartitions: 1,
+    // 오디오 처리 관련 토픽만 파티션 수 증가
+    const topicConfigs = [
+      {
+        topic: KAFKA_TOPICS.AUDIO.RAW,
+        numPartitions: 5,  // 오디오 입력 파티션
         replicationFactor: 1
-      }))
-    });
+      },
+      {
+        topic: KAFKA_TOPICS.AUDIO.PROCESSED,
+        numPartitions: 5,  // 처리� 오디오 파티션
+        replicationFactor: 1
+      },
+      // 나머지 토픽들은 기본값 유지
+      ...topics.filter(t => ![KAFKA_TOPICS.AUDIO.RAW, KAFKA_TOPICS.AUDIO.PROCESSED].includes(t))
+        .map(topic => ({
+          topic,
+          numPartitions: 1,
+          replicationFactor: 1
+        }))
+    ];
+
+    await admin.createTopics({ topics: topicConfigs });
 
     console.log('Successfully created topics:', topics);
     await admin.disconnect();
