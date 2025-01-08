@@ -55,32 +55,34 @@ router.get('/:id/tickets', async (req, res) => {
 router.post('/:id/tickets', async (req, res) => {
   try {
     const meetingId = parseInt(req.params.id);
-    const { title, content } = req.body;
+    const { title, content, assigneeId } = req.body;
     const ticket = await meetingService.createTicket({
       title,
       content,
-      meetingId
+      meetingId,
+      assigneeId
     });
-    res.json(ticket);
+    res.status(201).json(ticket);
   } catch (error) {
-    res.status(400).json({ error: 'Failed to create ticket' });
+    res.status(500).json({ error: 'Failed to create ticket' });
   }
 });
 
 // 티켓 수정
-router.patch('/:id/tickets/:ticketId', async (req, res) => {
+router.patch('/:meetingId/tickets/:ticketId', async (req, res) => {
   try {
     const { ticketId } = req.params;
-    const { title, content, status, reason } = req.body;
+    const { title, content, status, assigneeId, reason } = req.body;
     const ticket = await meetingService.updateTicket(ticketId, {
       title,
       content,
       status,
+      assigneeId,
       reason
     });
     res.json(ticket);
   } catch (error) {
-    res.status(400).json({ error: 'Failed to update ticket' });
+    res.status(500).json({ error: 'Failed to update ticket' });
   }
 });
 

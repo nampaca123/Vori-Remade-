@@ -116,12 +116,20 @@ export class AudioProcessor {
   }
 
   private async updateDatabase(msg: TranscriptionMessage) {
-    await prisma.meeting.update({
+    await prisma.meeting.upsert({
       where: { 
         meetingId: msg.meetingId,
         audioId: msg.audioId
       },
-      data: { transcript: msg.transcript }
+      create: {
+        audioId: msg.audioId,
+        meetingId: msg.meetingId,
+        transcript: msg.transcript,
+        groupId: 1  // 임시로 기본 그룹 ID 설정
+      },
+      update: { 
+        transcript: msg.transcript 
+      }
     });
   }
 

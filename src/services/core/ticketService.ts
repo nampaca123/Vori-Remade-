@@ -1,6 +1,28 @@
-import { PrismaClient, TicketStatus, Ticket } from '@prisma/client';
-import { ClaudeClient, TicketSuggestion } from './claudeClient';
+import { PrismaClient, Ticket, User } from '@prisma/client';
+import { ClaudeClient } from './claudeClient';
 import { sendMessage, KAFKA_TOPICS } from '../../lib/kafka';
+
+type TicketStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
+
+type TranscriptAnalysis = {
+  newTickets: TicketSuggestion[];
+  ticketUpdates: TicketUpdate[];
+};
+
+interface TicketSuggestion {
+  title: string;
+  content: string;
+  status: TicketStatus;
+  meetingId: number;
+  assigneeId?: number;
+}
+
+interface TicketUpdate {
+  ticketId: string;
+  newStatus: TicketStatus;
+  assigneeId?: number;
+  reason: string;
+}
 
 export class TicketService {
   constructor(
@@ -8,11 +30,17 @@ export class TicketService {
     private claudeClient: ClaudeClient
   ) {}
 
-  async processTranscript(meetingId: number): Promise<Ticket[]> {
+  async processTranscript(
+    meetingId: number, 
+    analysis: TranscriptAnalysis
+  ): Promise<Ticket[]> {
     try {
       // 1. 기존 티켓 목록 조회
       const existingTickets = await this.prisma.ticket.findMany({
-        where: { meetingId }
+        where: { meetingId },
+        include: {
+          assignee: true
+        }
       });
 
       // 2. 트랜스크립트 수집
@@ -25,14 +53,11 @@ export class TicketService {
         throw new Error('Meeting not found');
       }
 
-      // 2. 트랜스크립트 정리
+      // 3. 트랜스크립트 정리
       const fullTranscript = meetings
         .map(m => m.transcript)
         .filter(Boolean)
         .join('\n');
-
-      // 3. Claude API 분석 (기존 티켓 정보 포함)
-      const analysis = await this.claudeClient.analyzeTranscript(fullTranscript, existingTickets);
 
       // 4. 트랜잭션으로 처리
       const result = await this.prisma.$transaction(async (tx) => {
@@ -41,8 +66,14 @@ export class TicketService {
           analysis.newTickets.map(ticket =>
             tx.ticket.create({
               data: {
-                ...ticket,
-                meetingId
+                title: ticket.title,
+                content: ticket.content,
+                status: ticket.status,
+                meetingId,
+                assigneeId: ticket.assigneeId
+              },
+              include: {
+                assignee: true
               }
             })
           )
@@ -53,7 +84,13 @@ export class TicketService {
           analysis.ticketUpdates.map(update =>
             tx.ticket.update({
               where: { ticketId: update.ticketId },
-              data: { status: update.newStatus }
+              data: { 
+                status: update.newStatus,
+                assigneeId: update.assigneeId
+              },
+              include: {
+                assignee: true
+              }
             })
           )
         );
@@ -65,11 +102,17 @@ export class TicketService {
       await Promise.all([
         sendMessage(KAFKA_TOPICS.TICKET.CREATED, { 
           meetingId, 
-          tickets: result.newTickets 
+          tickets: result.newTickets.map(ticket => ({
+            ...ticket,
+            assigneeName: ticket.assignee?.name
+          }))
         }),
         sendMessage(KAFKA_TOPICS.TICKET.UPDATED, { 
           meetingId, 
-          tickets: result.updatedTickets 
+          tickets: result.updatedTickets.map(ticket => ({
+            ...ticket,
+            assigneeName: ticket.assignee?.name
+          }))
         })
       ]);
 
@@ -80,17 +123,22 @@ export class TicketService {
     }
   }
 
-  async createTicket({ title, content, meetingId }: { 
+  async createTicket({ title, content, meetingId, assigneeId }: { 
     title: string; 
     content: string; 
-    meetingId: number; 
+    meetingId: number;
+    assigneeId?: number;
   }) {
     return this.prisma.ticket.create({
       data: {
         title,
         content,
         meetingId,
+        assigneeId,
         status: 'TODO'
+      },
+      include: {
+        assignee: true
       }
     });
   }
@@ -98,7 +146,10 @@ export class TicketService {
   async getTicketsByMeetingId(meetingId: number) {
     return this.prisma.ticket.findMany({
       where: { meetingId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        assignee: true
+      }
     });
   }
 
@@ -106,6 +157,7 @@ export class TicketService {
     title?: string;
     content?: string;
     status?: TicketStatus;
+    assigneeId?: number;
     reason?: string;
   }) {
     const ticket = await this.prisma.ticket.update({
@@ -113,15 +165,20 @@ export class TicketService {
       data: {
         ...(data.title && { title: data.title }),
         ...(data.content && { content: data.content }),
-        ...(data.status && { status: data.status })
+        ...(data.status && { status: data.status }),
+        ...(data.assigneeId !== undefined && { assigneeId: data.assigneeId })
+      },
+      include: {
+        assignee: true
       }
     });
 
-    // 상태가 변경된 경우 Kafka 이벤트 발행
     if (data.status) {
       await sendMessage(KAFKA_TOPICS.TICKET.UPDATED, {
         ticketId,
         status: data.status,
+        assigneeId: ticket.assigneeId,
+        assigneeName: ticket.assignee?.name,
         reason: data.reason
       });
     }

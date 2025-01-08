@@ -1,17 +1,21 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { PrismaClient, Ticket } from '@prisma/client';
+import { PrismaClient, Ticket, User } from '@prisma/client';
+
+type TicketStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 
 export interface TicketSuggestion {
   ticketId: string;
   title: string;
   content: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  status: TicketStatus;
   meetingId: number;
+  assigneeId?: number;
 }
 
 export interface TicketUpdate {
   ticketId: string;
-  newStatus: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  newStatus: TicketStatus;
+  assigneeId?: number;
   reason: string;
 }
 
@@ -38,7 +42,11 @@ export class ClaudeClient {
     });
   }
 
-  async analyzeTranscript(transcript: string, existingTickets: Ticket[]): Promise<TranscriptAnalysis> {
+  async analyzeTranscript(
+    transcript: string, 
+    existingTickets: (Ticket & { assignee?: User | null })[], 
+    groupMembers: { userId: number; name: string; }[]
+  ): Promise<TranscriptAnalysis> {
     const prompt = `
 You are an expert agile project manager and meeting analyzer. Analyze the meeting transcript and return ONLY a JSON response in the exact format specified below.
 
@@ -49,13 +57,15 @@ RESPONSE FORMAT (Strict JSON):
       "title": string,       // Action-oriented, max 100 chars
       "content": string,     // Detailed description
       "status": "TODO" | "IN_PROGRESS" | "DONE",  // Determine from context
-      "meetingId": number    // Same as input meetingId
+      "meetingId": number,   // Same as input meetingId
+      "assigneeId": number | null  // User ID from group members list, or null if unclear
     }
   ],
   "ticketUpdates": [
     {
       "ticketId": string,    // Must match existing ticket ID
       "newStatus": "IN_PROGRESS" | "DONE",
+      "assigneeId": number | null,  // Updated assignee if mentioned
       "reason": string       // Brief explanation
     }
   ],
@@ -66,48 +76,68 @@ RESPONSE FORMAT (Strict JSON):
   }
 }
 
-Status Classification for New Tickets:
-- "I need to implement..." → "TODO"
-- "I'm currently working on..." → "IN_PROGRESS"
-- "I've already finished..." → "DONE"
-- "I started this last week..." → "IN_PROGRESS"
-- "This was completed yesterday..." → "DONE"
+Assignee Detection Guidelines:
+1. Match context clues with group member names
+2. Look for phrases like:
+   - "I will handle..."
+   - "Alice is working on..."
+   - "This is Bob's task..."
+   - "We assigned this to Carol..."
+3. Set assigneeId to null if ownership is unclear
+4. Only assign to users from the provided group members list
 
-Example Valid Response:
+Example Valid Responses:
+
+Case 1 - Clear Assignment:
 {
   "newTickets": [
     {
       "title": "Implement user authentication API",
-      "content": "Create REST endpoints for user login and registration. Priority: High, Estimated effort: 3 days",
-      "status": "IN_PROGRESS",  // Speaker mentioned they started this last week
-      "meetingId": 101
-    },
+      "content": "Create REST endpoints for user login and registration",
+      "status": "IN_PROGRESS",
+      "meetingId": 101,
+      "assigneeId": 1  // Alice mentioned "I'm working on the auth API"
+    }
+  ]
+}
+
+Case 2 - Unclear Assignment:
+{
+  "newTickets": [
     {
       "title": "Update database schema",
-      "content": "Add new fields for user preferences. Already completed during sprint preparation.",
-      "status": "DONE",  // Speaker mentioned this was already finished
-      "meetingId": 101
+      "content": "Add new fields for user preferences",
+      "status": "TODO",
+      "meetingId": 101,
+      "assigneeId": null  // No clear owner mentioned
     }
-  ],
-  "ticketUpdates": [
+  ]
+}
+
+Case 3 - Indirect Assignment:
+{
+  "newTickets": [
     {
-      "ticketId": "existing-uuid",
-      "newStatus": "IN_PROGRESS",
-      "reason": "Team started implementation"
+      "title": "Fix frontend bugs",
+      "content": "Address reported UI issues in the dashboard",
+      "status": "TODO",
+      "meetingId": 101,
+      "assigneeId": 2  // Bob mentioned "These frontend issues are in my domain"
     }
-  ],
-  "meetingMetrics": {
-    "actionableItemsCount": 1,
-    "statusUpdatesCount": 1,
-    "blockersMentioned": 0
-  }
+  ]
 }
 
 Context:
+Group Members:
+${groupMembers.map(member => 
+  `- Name: "${member.name}"\n  ID: ${member.userId}`
+).join('\n')}
+
+Existing Tickets:
 ${existingTickets.length > 0 ? 
-  `Existing Tickets:\n${existingTickets.map(ticket => 
-    `- Title: "${ticket.title}"\n  ID: ${ticket.ticketId}\n  Status: ${ticket.status}`
-  ).join('\n')}` 
+  existingTickets.map(ticket => 
+    `- Title: "${ticket.title}"\n  ID: ${ticket.ticketId}\n  Status: ${ticket.status}\n  Assignee: ${ticket.assignee?.name || 'Unassigned'}`
+  ).join('\n') 
   : 'No existing tickets.'
 }
 
@@ -116,8 +146,9 @@ ${transcript}
 
 IMPORTANT: 
 1. Return ONLY the JSON response with no additional text
-2. For new tickets, carefully analyze the context to determine the correct initial status
-3. Status should reflect the actual state of work, not when it was first mentioned`;
+2. For new tickets, carefully analyze the context to determine the correct initial status and assignee
+3. Status should reflect the actual state of work, not when it was first mentioned
+4. Only assign tickets to users from the provided group members list`;
 
     const response = await this.client.messages.create({
       model: "claude-3-sonnet-20240229",

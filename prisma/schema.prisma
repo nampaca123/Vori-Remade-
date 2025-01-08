@@ -20,6 +20,9 @@ model Meeting {
   meetingId   Int
   transcript  String?
   createdAt   DateTime @default(now())
+  groupId     Int
+
+  group       Group    @relation(fields: [groupId], references: [groupId])
 
   @@index([meetingId])
 }
@@ -37,8 +40,12 @@ model Ticket {
   content     String
   status      TicketStatus @default(TODO)
   meetingId   Int
+  assigneeId  Int?         // null 허용 (담당자가 지정되지 않은 경우)
+  assignee    User?        @relation(fields: [assigneeId], references: [userId])  // User 모델과 관계 설정
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  @@index([assigneeId])
 }
 
 // 티켓 상태 변경 이력
@@ -63,4 +70,35 @@ model MeetingMetrics {
   createdAt           DateTime @default(now())
 
   @@index([meetingId])
+}
+
+model Group {
+  groupId   Int           @id @default(autoincrement())
+  name      String
+  members   GroupMember[]
+  meetings  Meeting[]
+}
+
+model User {
+  userId      Int           @id @default(autoincrement())
+  email       String        @unique
+  name        String?
+  firebaseUid String        @unique
+  groups      GroupMember[]
+  tickets     Ticket[]      // 담당 티켓 목록 (역방향 관계)
+}
+
+model GroupMember {
+  userId    Int
+  groupId   Int
+  role      Role     @default(MEMBER)
+  user      User     @relation(fields: [userId], references: [userId])
+  group     Group    @relation(fields: [groupId], references: [groupId])
+
+  @@id([userId, groupId])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
 }

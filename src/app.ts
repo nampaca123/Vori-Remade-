@@ -5,6 +5,8 @@ import { errorHandlerMiddleware } from './middlewares/errorHandler';
 import meetingRoutes from './routes/meetingRoutes';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger';
+import groupRoutes from './routes/groupRoutes';
+import userRoutes from './routes/userRoutes';
 
 const app = express();
 
@@ -15,6 +17,8 @@ app.use(morganMW);
 
 // 라우터
 app.use('/api/meetings', meetingRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/users', userRoutes);
 // 기본 라우트
 app.get('/', (req, res) => {
   res.send('VORI Backend Server');
