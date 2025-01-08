@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { Server } from 'ws';
-import { prisma } from '../../lib/prisma';
-import { consumer } from '../../lib/kafka';
+import { PrismaClient } from '@prisma/client';
+import { Kafka, Consumer as KafkaConsumer } from 'kafkajs';
 import { KAFKA_TOPICS } from '../../lib/kafka';
 import { performance } from 'perf_hooks';
 
@@ -19,14 +19,28 @@ interface TranscriptionMessage {
 
 export class AudioProcessor {
   private static instance: AudioProcessor;
-  private isProcessing: boolean = false;
+  private consumers: KafkaConsumer[] = [];
+  private readonly numWorkers = 5;
   private wsServer: Server;
   private wsClients: Map<string, WebSocket>;
 
-  private constructor() {
+  private constructor(
+    private readonly prisma: PrismaClient,
+    private readonly kafka: Kafka
+  ) {
     this.wsClients = new Map();
     this.wsServer = new WebSocket.Server({ port: 8080 });
     this.setupWebSocketServer();
+  }
+
+  static getInstance(): AudioProcessor {
+    if (!AudioProcessor.instance) {
+      AudioProcessor.instance = new AudioProcessor(new PrismaClient(), new Kafka({
+        clientId: 'vori-backend',
+        brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
+      }));
+    }
+    return AudioProcessor.instance;
   }
 
   private setupWebSocketServer() {
@@ -50,85 +64,82 @@ export class AudioProcessor {
     });
   }
 
-  static getInstance(): AudioProcessor {
-    if (!AudioProcessor.instance) {
-      AudioProcessor.instance = new AudioProcessor();
-    }
-    return AudioProcessor.instance;
-  }
-
   async startProcessing() {
-    if (this.isProcessing) return;
-
     try {
       console.log('[AudioProcessor] Starting audio processor...');
-      await consumer.connect();
-      console.log('[AudioProcessor] Connected to Kafka');
       
-      await consumer.subscribe({ 
-        topics: [KAFKA_TOPICS.TRANSCRIPTION.COMPLETED],
-        fromBeginning: false 
-      });
-      console.log('[AudioProcessor] Subscribed to topics:', KAFKA_TOPICS.TRANSCRIPTION.COMPLETED);
+      // 여러 컨슈머 인스턴스 생성
+      for (let i = 0; i < this.numWorkers; i++) {
+        const consumer = this.kafka.consumer({ 
+          groupId: `vori-audio-processor-${i}`,
+          sessionTimeout: 6000,
+        });
 
-      await consumer.run({
-        eachMessage: async ({ topic, partition, message }) => {
-          console.log('[AudioProcessor] Received message from topic:', topic);
-          if (!message.value) return;
-          await this.processTranscriptionMessage(message);
-        },
-      });
+        await consumer.connect();
+        await consumer.subscribe({ 
+          topic: KAFKA_TOPICS.TRANSCRIPTION.COMPLETED,
+          fromBeginning: false 
+        });
 
-      this.isProcessing = true;
-      console.log('[AudioProcessor] Started successfully');
+        // 각 컨슈머에 대한 메시지 처리 시작
+        await this.startWorker(consumer, i);
+        this.consumers.push(consumer);
+      }
+
+      console.log(`[AudioProcessor] Started ${this.numWorkers} workers successfully`);
     } catch (error) {
       console.error('[AudioProcessor] Error starting processor:', error);
       throw error;
     }
   }
 
-  private async processTranscriptionMessage(message: any) {
-    const startTime = performance.now();
-    
+  private async startWorker(consumer: KafkaConsumer, workerId: number) {
     try {
-      const transcriptionMessage = JSON.parse(message.value.toString());
-      const { metrics } = transcriptionMessage;
-      
-      await this.updateDatabase(transcriptionMessage);
-      const dbUpdateTime = performance.now() - startTime;
-      
-      console.log(`
-        [AudioProcessor] Processing times for meeting ${transcriptionMessage.meetingId}:
-        Kafka to Whisper: ${metrics.kafkaDeliveryTime.toFixed(2)}s
-        Whisper processing: ${metrics.whisperProcessingTime.toFixed(2)}s
-        Database update: ${dbUpdateTime.toFixed(2)}ms
-        Total time: ${metrics.totalProcessingTime.toFixed(2)}s
-      `);
-      
-      this.broadcastTranscription(transcriptionMessage);
+      await consumer.run({
+        partitionsConsumedConcurrently: 1,
+        eachMessage: async ({ topic, partition, message }) => {
+          const startTime = performance.now();
+          
+          try {
+            if (!message.value) return;
+            
+            const transcriptionMessage: TranscriptionMessage = 
+              JSON.parse(message.value.toString());
+            
+            await this.updateDatabase(transcriptionMessage);
+            const dbUpdateTime = performance.now() - startTime;
+            
+            console.log(`
+              [AudioProcessor] Worker ${workerId} processing times:
+              Meeting ID: ${transcriptionMessage.meetingId}
+              Partition: ${partition}
+              Kafka to Whisper: ${transcriptionMessage.metrics?.kafkaDeliveryTime.toFixed(2)}s
+              Whisper processing: ${transcriptionMessage.metrics?.whisperProcessingTime.toFixed(2)}s
+              Database update: ${dbUpdateTime.toFixed(2)}ms
+              Total time: ${transcriptionMessage.metrics?.totalProcessingTime.toFixed(2)}s
+            `);
+            
+            this.broadcastTranscription(transcriptionMessage);
+            
+          } catch (error) {
+            console.error(`[AudioProcessor] Worker ${workerId} failed to process message:`, error);
+          }
+        }
+      });
     } catch (error) {
-      console.error('[AudioProcessor] Error processing message:', error);
+      console.error(`[AudioProcessor] Worker ${workerId} failed to start:`, error);
+      throw error;
     }
   }
 
-  private isValidTranscriptionMessage(msg: any): msg is TranscriptionMessage {
-    return msg?.meetingId && msg?.audioId && msg?.transcript && msg?.timestamp;
-  }
-
   private async updateDatabase(msg: TranscriptionMessage) {
-    await prisma.meeting.upsert({
+    await this.prisma.meeting.update({
       where: { 
         meetingId: msg.meetingId,
         audioId: msg.audioId
       },
-      create: {
-        audioId: msg.audioId,
-        meetingId: msg.meetingId,
-        transcript: msg.transcript,
-        groupId: 1  // 임시로 기본 그룹 ID 설정
-      },
-      update: { 
-        transcript: msg.transcript 
+      data: { 
+        transcript: msg.transcript
       }
     });
   }
@@ -147,6 +158,14 @@ export class AudioProcessor {
         timestamp: transcriptionMessage.timestamp
       }));
     }
+  }
+
+  async stop() {
+    await Promise.all(
+      this.consumers.map(consumer => consumer.disconnect())
+    );
+    this.wsServer.close();
+    console.log('[AudioProcessor] All workers and WebSocket server stopped');
   }
 }
 
