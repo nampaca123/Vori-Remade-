@@ -55,4 +55,74 @@ router.patch('/:groupId/members/:userId', auth.validateGroupAction('updateRole')
   }
 });
 
+/**
+ * @swagger
+ * /api/groups:
+ *   get:
+ *     summary: 그룹 목록 조회
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 그룹 목록 반환 성공
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   groupId:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *                   members:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *   post:
+ *     summary: 새 그룹 생성
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 그룹 생성 성공
+ * 
+ * /api/groups/{groupId}/members:
+ *   post:
+ *     summary: 그룹 멤버 초대
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: groupId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 멤버 초대 성공
+ */
+
 export default router; 
