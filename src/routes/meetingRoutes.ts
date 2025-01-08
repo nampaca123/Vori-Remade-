@@ -2,10 +2,14 @@ import express from 'express';
 import { MeetingService } from '../services/meetingService';
 import { prisma } from '../lib/prisma';
 import { ClaudeClient } from '../services/core/claudeClient';
+import { auth } from '../middlewares/auth';
 
 const router = express.Router();
 const claudeClient = new ClaudeClient(prisma);
 const meetingService = new MeetingService(prisma, claudeClient);
+
+// 모든 라우터에 인증 미들웨어 적용
+router.use(auth.requireAuth);
 
 // 회의 목록 조회
 router.get('/', async (req, res) => {
@@ -95,12 +99,24 @@ router.patch('/:meetingId/tickets/:ticketId', async (req, res) => {
 
 /**
  * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *       description: |
+ *         프로덕션 환경: Firebase ID 토큰 필요
+ *         개발 환경: 토큰 불필요 (테스트 사용자로 자동 인증)
+ * 
  * /api/meetings:
  *   get:
  *     summary: 회의 목록 조회
  *     tags: [Meetings]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
  *     responses:
  *       200:
  *         description: 회의 목록 반환 성공
@@ -117,6 +133,8 @@ router.patch('/:meetingId/tickets/:ticketId', async (req, res) => {
  *     tags: [Meetings]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
  *     parameters:
  *       - in: path
  *         name: id
@@ -144,6 +162,8 @@ router.patch('/:meetingId/tickets/:ticketId', async (req, res) => {
  *     tags: [Meetings]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
  *     parameters:
  *       - in: path
  *         name: id
@@ -171,6 +191,8 @@ router.patch('/:meetingId/tickets/:ticketId', async (req, res) => {
  *     tags: [Meetings]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
  *     parameters:
  *       - in: path
  *         name: id
@@ -191,6 +213,8 @@ router.patch('/:meetingId/tickets/:ticketId', async (req, res) => {
  *     tags: [Meetings]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
  *     parameters:
  *       - in: path
  *         name: id
@@ -220,6 +244,8 @@ router.patch('/:meetingId/tickets/:ticketId', async (req, res) => {
  *     tags: [Meetings]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
  *     parameters:
  *       - in: path
  *         name: meetingId

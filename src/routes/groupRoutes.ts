@@ -57,12 +57,24 @@ router.patch('/:groupId/members/:userId', auth.validateGroupAction('updateRole')
 
 /**
  * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *       description: |
+ *         프로덕션 환경: Firebase ID 토큰 필요
+ *         개발 환경: 토큰 불필요 (테스트 사용자로 자동 인증)
+ * 
  * /api/groups:
  *   get:
  *     summary: 그룹 목록 조회
  *     tags: [Groups]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
  *     responses:
  *       200:
  *         description: 그룹 목록 반환 성공
@@ -81,11 +93,20 @@ router.patch('/:groupId/members/:userId', auth.validateGroupAction('updateRole')
  *                     type: array
  *                     items:
  *                       type: object
+ *                       properties:
+ *                         userId:
+ *                           type: integer
+ *                         email:
+ *                           type: string
+ *                         name:
+ *                           type: string
  *   post:
  *     summary: 새 그룹 생성
  *     tags: [Groups]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
  *     requestBody:
  *       required: true
  *       content:
@@ -105,6 +126,9 @@ router.patch('/:groupId/members/:userId', auth.validateGroupAction('updateRole')
  *     tags: [Groups]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
+ *       ADMIN 권한이 필요합니다.
  *     parameters:
  *       - in: path
  *         name: groupId
@@ -123,6 +147,40 @@ router.patch('/:groupId/members/:userId', auth.validateGroupAction('updateRole')
  *     responses:
  *       201:
  *         description: 멤버 초대 성공
+ * 
+ * /api/groups/{groupId}/members/{userId}:
+ *   patch:
+ *     summary: 멤버 역할 수정
+ *     tags: [Groups]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       개발 환경에서는 Authorization 헤더 없이도 테스트 사용자로 자동 인증됩니다.
+ *       ADMIN 권한이 필요합니다.
+ *     parameters:
+ *       - in: path
+ *         name: groupId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [ADMIN, MEMBER]
+ *     responses:
+ *       200:
+ *         description: 멤버 역할 수정 성공
  */
 
 export default router; 
