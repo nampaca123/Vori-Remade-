@@ -71,5 +71,21 @@ services:
     volumes:
       - ./src/whisper:/app
 
+  spark-master:
+    image: bitnami/spark:latest
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "8080:8080"  # Spark UI
+      - "7077:7077"  # Spark 마스터
+    
+  spark-worker:
+    image: bitnami/spark:latest
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+
 volumes:
   postgres_data: 
