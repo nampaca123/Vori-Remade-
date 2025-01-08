@@ -15,6 +15,7 @@ if (process.env.NODE_ENV !== 'production') {
 // 기본 데이터 초기화 함수
 export const initializeDatabase = async () => {
   try {
+    // 1. 기본 그룹 생성
     const defaultGroup = await prisma.group.upsert({
       where: { groupId: 1 },
       update: {},
@@ -23,6 +24,39 @@ export const initializeDatabase = async () => {
         name: "Default Group"
       }
     });
+
+    // 2. 개발용 테스트 사용자 생성
+    if (process.env.NODE_ENV === 'development') {
+      const testUser = await prisma.user.upsert({
+        where: { firebaseUid: 'test-uid' },
+        update: {},
+        create: {
+          userId: 1,
+          email: 'test@example.com',
+          name: 'Test User',
+          firebaseUid: 'test-uid'
+        }
+      });
+
+      // 3. 테스트 사용자를 기본 그룹에 추가
+      await prisma.groupMember.upsert({
+        where: {
+          userId_groupId: {
+            userId: testUser.userId,
+            groupId: defaultGroup.groupId
+          }
+        },
+        update: {},
+        create: {
+          userId: testUser.userId,
+          groupId: defaultGroup.groupId,
+          role: 'ADMIN'
+        }
+      });
+
+      console.log('Test user initialized:', testUser);
+    }
+
     console.log('Default group initialized:', defaultGroup);
   } catch (error) {
     console.error('Failed to initialize database:', error);

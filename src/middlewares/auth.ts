@@ -23,6 +23,20 @@ declare global {
 export const auth = {
   // 기본 인증
   requireAuth: async (req: Request, res: Response, next: NextFunction) => {
+    if (process.env.NODE_ENV === 'development') {
+      const testUser = await prisma.user.findUnique({
+        where: { firebaseUid: 'test-uid' }
+      });
+      
+      if (!testUser) {
+        throw new CustomError(500, 'Test user not found. Did you run initializeDatabase?');
+      }
+      
+      req.user = testUser;
+      return next();
+    }
+
+    // 프로덕션 환경에서는 기존 Firebase 인증 로직 실행
     try {
       const token = req.headers.authorization?.split('Bearer ')[1];
       if (!token) throw new CustomError(401, 'No token provided');

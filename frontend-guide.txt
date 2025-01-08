@@ -1,0 +1,163 @@
+# VORI Frontend Development Guide
+
+## API Documentation
+
+### 1. Meeting APIs
+
+#### GET /api/meetings
+회의 목록 조회
+- Auth: Bearer Token 필요
+- Response (200):
+```json
+[
+  {
+    "meetingId": "number",
+    "audioId": "number",
+    "transcript": "string | null",
+    "createdAt": "string (ISO date)",
+    "groupId": "number"
+  }
+]
+```
+
+#### POST /api/meetings/{id}/stream
+오디오 스트림 처리
+- Auth: Bearer Token 필요
+- Parameters:
+  - id: number (path parameter)
+- Request Body:
+```json
+{
+  "audioData": "string (base64)",
+  "audioId": "number"
+}
+```
+- Response (202):
+```json
+{
+  "message": "Audio processing started",
+  "meeting": {
+    "meetingId": "number",
+    "audioId": "number",
+    "transcript": "string | null"
+  }
+}
+```
+
+#### POST /api/meetings/{id}/end
+회의 종료
+- Auth: Bearer Token 필요
+- Parameters:
+  - id: number (path parameter)
+- Response (200):
+```json
+{
+  "message": "Meeting ended",
+  "tickets": [
+    {
+      "ticketId": "string",
+      "title": "string",
+      "content": "string",
+      "status": "TODO | IN_PROGRESS | DONE",
+      "assigneeId": "number | null"
+    }
+  ]
+}
+```
+
+### 2. Group APIs
+
+#### GET /api/groups
+그룹 목록 조회
+- Auth: Bearer Token 필요
+- Response (200):
+```json
+[
+  {
+    "groupId": "number",
+    "name": "string",
+    "members": [
+      {
+        "userId": "number",
+        "email": "string",
+        "name": "string"
+      }
+    ]
+  }
+]
+```
+
+#### POST /api/groups
+새 그룹 생성
+- Auth: Bearer Token 필요
+- Request Body:
+```json
+{
+  "name": "string"
+}
+```
+- Response (201):
+```json
+{
+  "groupId": "number",
+  "name": "string"
+}
+```
+
+#### POST /api/groups/{groupId}/members
+그룹 멤버 초대
+- Auth: Bearer Token 필요
+- Parameters:
+  - groupId: number (path parameter)
+- Request Body:
+```json
+{
+  "email": "string"
+}
+```
+- Response (201):
+```json
+{
+  "message": "Member invited successfully"
+}
+```
+
+### 3. User APIs
+
+#### POST /api/users/sync
+Firebase 인증 후 사용자 정보 동기화
+- Request Body:
+```json
+{
+  "email": "string",
+  "name": "string",
+  "firebaseUid": "string"
+}
+```
+- Response (201):
+```json
+{
+  "userId": "number",
+  "email": "string",
+  "name": "string",
+  "firebaseUid": "string"
+}
+```
+
+#### GET /api/users/me
+현재 사용자 정보 조회
+- Auth: Bearer Token 필요
+- Response (200):
+```json
+{
+  "userId": "number",
+  "email": "string",
+  "name": "string"
+}
+```
+
+### Authentication
+모든 보호된 API 엔드포인트는 다음 형식의 Authorization 헤더가 필요:
+```
+Authorization: Bearer {firebase_id_token}
+``` 
