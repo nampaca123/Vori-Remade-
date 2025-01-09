@@ -41,7 +41,7 @@ export class MeetingService {
         audioId,
         meetingId,
         transcript: null,
-        groupId: userGroup.groupId  // 하드코딩된 값 대신 사용자의 그룹 ID 사용
+        groupId: userGroup.groupId
       }
     });
 
@@ -49,50 +49,57 @@ export class MeetingService {
   }
 
   async endMeeting(meetingId: number) {
-    // 1. 미팅 정보 조회
-    const meeting = await this.prisma.meeting.findFirst({
-      where: { meetingId },
-      include: {
-        group: {
-          include: {
-            members: {
-              include: {
-                user: {
-                  select: {
-                    userId: true,
-                    name: true
+    try {
+      const meeting = await this.prisma.meeting.findFirst({
+        where: { meetingId },
+        include: {
+          group: {
+            include: {
+              members: {
+                include: {
+                  user: {
+                    select: {
+                      userId: true,
+                      name: true
+                    }
                   }
                 }
               }
             }
           }
         }
+      });
+
+      if (!meeting) {
+        throw new CustomError(404, 'Meeting not found');
       }
-    });
 
-    if (!meeting) {
-      throw new CustomError(404, 'Meeting not found');
+      console.log('Meeting transcript:', meeting.transcript); // 디버깅용 로그 추가
+
+      if (!meeting.transcript) {
+        throw new CustomError(400, 'No transcript available for analysis');
+      }
+
+      const groupMembers = meeting.group.members.map(member => ({
+        userId: member.user.userId,
+        name: member.user.name || 'Unknown'
+      }));
+
+      const existingTickets = await this.ticketService.getTicketsByMeetingId(meetingId);
+      
+      const analysis = await this.claudeClient.analyzeTranscript(
+        meeting.transcript,
+        existingTickets,
+        groupMembers,
+        meetingId
+      );
+
+      const tickets = await this.ticketService.processTranscript(meetingId, analysis);
+      return tickets;
+    } catch (error) {
+      console.error('Error in endMeeting:', error);
+      throw error;
     }
-
-    // 2. 그룹 멤버 목록 추출
-    const groupMembers = meeting.group.members.map(member => ({
-      userId: member.user.userId,
-      name: member.user.name || 'Unknown'
-    }));
-
-    // 3. 기존 티켓 조회
-    const existingTickets = await this.ticketService.getTicketsByMeetingId(meetingId);
-
-    // 4. Claude 분석 요청
-    const analysis = await this.claudeClient.analyzeTranscript(
-      meeting.transcript || '',
-      existingTickets,
-      groupMembers
-    );
-
-    // 5. 분석 결과 처리
-    const tickets = await this.ticketService.processTranscript(meetingId, analysis);
-    return tickets;
   }
 
   async getTicketsByMeetingId(meetingId: number) {

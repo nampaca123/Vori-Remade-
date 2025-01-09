@@ -22,7 +22,9 @@ export const KAFKA_TOPICS = {
   },
   ANALYTICS: {
     TICKET_METRICS: 'analytics.ticket.metrics',
-    GROUP_TRENDS: 'analytics.trends.groups'
+    GROUP_TRENDS: 'analytics.trends.groups',
+    TEXT: 'analytics.text',
+    PRODUCTIVITY: 'analytics.productivity'
   }
 };
 
@@ -71,14 +73,12 @@ export const createTopics = async () => {
     await admin.connect();
     
     // 모든 토픽 추출
-    const allTopics = [
-      ...Object.values(KAFKA_TOPICS).flatMap(group => Object.values(group)),
-      'analytics.ticket.metrics',
-      'analytics.text',
-      'analytics.productivity'
-    ];
+    const allTopics = Object.values(KAFKA_TOPICS).flatMap(group => Object.values(group));
 
-    const topicConfigs = allTopics.map(topic => ({
+    // 중복 제거
+    const uniqueTopics = [...new Set(allTopics)];
+
+    const topicConfigs = uniqueTopics.map(topic => ({
       topic,
       numPartitions: 5,  // 모든 토픽 5개 파티션으로 통일
       replicationFactor: 1

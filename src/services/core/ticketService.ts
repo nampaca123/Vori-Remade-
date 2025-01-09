@@ -19,6 +19,10 @@ export class TicketService {
     analysis: TranscriptAnalysis
   ): Promise<Ticket[]> {
     try {
+      console.log('Analysis received:', analysis);  // 분석 결과 확인
+      console.log('New tickets:', analysis.newTickets);  // 새 티켓 목록 확인
+      console.log('Ticket updates:', analysis.ticketUpdates);  // 업데이트 목록 확인
+
       // 1. 기존 티켓 목록 조회
       const existingTickets = await this.prisma.ticket.findMany({
         where: { meetingId },

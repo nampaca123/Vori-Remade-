@@ -23,7 +23,8 @@ export class ClaudeClient {
   async analyzeTranscript(
     transcript: string, 
     existingTickets: (Ticket & { assignee?: User | null })[], 
-    groupMembers: { userId: number; name: string; }[]
+    groupMembers: { userId: number; name: string; }[],
+    meetingId: number
   ): Promise<TranscriptAnalysis> {
     const prompt = `
 You are an expert agile project manager and meeting analyzer. Analyze the meeting transcript and return ONLY a JSON response in the exact format specified below.
@@ -128,35 +129,42 @@ IMPORTANT:
 3. Status should reflect the actual state of work, not when it was first mentioned
 4. Only assign tickets to users from the provided group members list`;
 
-    const response = await this.client.messages.create({
-      model: "claude-3-sonnet-20240229",
-      max_tokens: 4000,
-      messages: [{ 
-        role: "user", 
-        content: prompt
-      }],
-      system: "You are an expert agile project manager specializing in extracting actionable insights from development team meetings."
-    });
-
-    const result = JSON.parse((response.content[0] as { type: string, text: string }).text);
-    await this.saveMeetingMetrics(result.meetingMetrics, result.meetingId);
-    
-    return result;
+    try {
+      const response = await this.client.messages.create({
+        model: "claude-3-sonnet-20240229",
+        max_tokens: 4000,
+        messages: [{ 
+          role: "user", 
+          content: prompt
+        }],
+        system: "You are an expert agile project manager specializing in extracting actionable insights from development team meetings."
+      });
+      console.log('Claude API Response:', response.content[0]);
+      
+      const result = JSON.parse((response.content[0] as { type: string, text: string }).text);
+      console.log('Parsed Result:', result);
+      
+      await this.saveMeetingMetrics(result.meetingMetrics, meetingId);
+      return result;
+    } catch (error) {
+      console.error('Error in analyzeTranscript:', error);
+      throw error;
+    }
   }
 
   private async saveMeetingMetrics(metrics: TranscriptAnalysis['meetingMetrics'], meetingId: number) {
     try {
       await this.prisma.meetingMetrics.create({
         data: {
-          meetingId,
           actionableItemsCount: metrics.actionableItemsCount,
           statusUpdatesCount: metrics.statusUpdatesCount,
-          blockersMentioned: metrics.blockersMentioned
+          blockersMentioned: metrics.blockersMentioned,
+          meetingId: meetingId
         }
       });
     } catch (error) {
       console.error('Failed to save meeting metrics:', error);
-      // 메트릭스 저장 실패는 전체 프로세스를 중단시키지 않음
+      throw error;
     }
   }
 }
