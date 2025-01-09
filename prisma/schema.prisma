@@ -102,3 +102,40 @@ enum Role {
   ADMIN
   MEMBER
 }
+
+// 실시간 회의 분석 결과 (이름 변경)
+model RealTimeMetrics {
+  id              Int      @id @default(autoincrement())
+  meetingId       Int
+  windowStart     DateTime
+  windowEnd       DateTime
+  productivityScore Float
+  ticketCount      Int
+  actionableCount  Int
+  
+  @@index([meetingId, windowStart])
+}
+
+// 나머지 모델은 동일...
+
+// 티켓 패턴 분석 결과
+model TicketPatternAnalysis {
+  id                Int      @id @default(autoincrement())
+  meetingId         Int
+  avgStatusChangeDuration Float    // 상태 변경 평균 소요 시간
+  blockerCount      Int           // 블로커 발생 횟수
+  analysisDate      DateTime @default(now())
+  
+  @@index([meetingId])
+}
+
+// 시간대별 생산성 패턴
+model ProductivityPattern {
+  id          Int      @id @default(autoincrement())
+  hourOfDay   Int      // 0-23
+  avgScore    Float    // 평균 생산성 점수
+  meetingCount Int     // 회의 수
+  updatedAt   DateTime @default(now())
+  
+  @@unique([hourOfDay])
+}

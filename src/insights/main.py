@@ -1,5 +1,5 @@
-from utils import get_spark_session, get_kafka_stream, KAFKA_TOPICS, SCHEMAS
-from jobs import MeetingMetricsAnalyzer
+from utils import get_spark_session, get_kafka_stream, write_to_kafka, KAFKA_TOPICS, SCHEMAS
+from jobs import MeetingMetricsAnalyzer, TicketAnalyzer
 from models import MeetingAnalysisModel
 
 def main():
@@ -9,6 +9,7 @@ def main():
     # 분석기 초기화
     metrics_analyzer = MeetingMetricsAnalyzer(spark)
     text_analyzer = MeetingAnalysisModel(spark)
+    ticket_analyzer = TicketAnalyzer(spark)
     
     # Kafka 스트림 연결
     transcription_stream = get_kafka_stream(
@@ -21,6 +22,25 @@ def main():
         spark=spark,
         topic=KAFKA_TOPICS["TICKET"]["CREATED"],
         schema=SCHEMAS["TICKET"]
+    )
+    
+    ticket_update_stream = get_kafka_stream(
+        spark=spark,
+        topic=KAFKA_TOPICS["TICKET"]["UPDATED"],
+        schema=SCHEMAS["TICKET"]
+    )
+    
+    # 티켓 분석 처리
+    ticket_metrics = ticket_analyzer.calculate_metrics(
+        ticket_df=ticket_stream,
+        history_df=ticket_update_stream
+    )
+    
+    # 결과를 Kafka로 전송
+    write_to_kafka(
+        ticket_metrics,
+        topic="analytics.ticket.metrics",
+        checkpoint_location="/tmp/checkpoints/ticket_metrics"
     )
     
     # 텍스트 분석 처리

@@ -13,4 +13,14 @@ def get_spark_session(app_name: str = "vori-analytics") -> SparkSession:
     try:
         return SparkSession.builder.getOrCreate()
     except Exception:
-        return create_spark_session(app_name) 
+        return create_spark_session(app_name)
+
+def get_spark_session(app_name: str):
+    return (SparkSession
+            .builder
+            .appName(app_name)
+            # 병렬 처리 설정
+            .config("spark.streaming.concurrentJobs", "5")  # 동시 실행 작업 수
+            .config("spark.default.parallelism", "10")     # 기본 병렬 처리 수준
+            .config("spark.sql.shuffle.partitions", "10")  # SQL 셔플 파티션 수
+            .getOrCreate()) 
