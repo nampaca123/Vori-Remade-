@@ -1,6 +1,6 @@
 import { Kafka } from 'kafkajs';
 
-// Kafka 클픽 정의
+// Kafka 토픽 정의
 export const KAFKA_TOPICS = {
   AUDIO: {
     RAW: 'audio.raw',
@@ -19,6 +19,10 @@ export const KAFKA_TOPICS = {
     CREATED: 'ticket.created',
     UPDATED: 'ticket.updated',
     EXTRACTED: 'ticket.extracted'
+  },
+  ANALYTICS: {
+    TICKET_METRICS: 'analytics.ticket.metrics',
+    GROUP_TRENDS: 'analytics.trends.groups'
   }
 };
 
@@ -66,44 +70,26 @@ export const createTopics = async () => {
     console.log('Creating Kafka topics...');
     await admin.connect();
     
-    // 모든 토픽을 평면화된 배열로 변환
-    const topics = [
-      KAFKA_TOPICS.AUDIO.RAW,
-      KAFKA_TOPICS.AUDIO.PROCESSED,
-      KAFKA_TOPICS.TRANSCRIPTION.PENDING,
-      KAFKA_TOPICS.TRANSCRIPTION.COMPLETED,
-      KAFKA_TOPICS.MEETING.CREATED,
-      KAFKA_TOPICS.MEETING.UPDATED,
-      KAFKA_TOPICS.MEETING.SUMMARY,
-      KAFKA_TOPICS.TICKET.CREATED,
-      KAFKA_TOPICS.TICKET.UPDATED,
-      KAFKA_TOPICS.TICKET.EXTRACTED
+    // 모든 토픽 추출
+    const allTopics = [
+      ...Object.values(KAFKA_TOPICS).flatMap(group => Object.values(group)),
+      'analytics.ticket.metrics',
+      'analytics.text',
+      'analytics.productivity'
     ];
 
-    // 오디오 처리 관련 토픽만 파티션 수 증가
-    const topicConfigs = [
-      {
-        topic: KAFKA_TOPICS.AUDIO.RAW,
-        numPartitions: 5,  // 오디오 입력 파티션
-        replicationFactor: 1
-      },
-      {
-        topic: KAFKA_TOPICS.AUDIO.PROCESSED,
-        numPartitions: 5,  // 처리� 오디오 파티션
-        replicationFactor: 1
-      },
-      // 나머지 토픽들은 기본값 유지
-      ...topics.filter(t => ![KAFKA_TOPICS.AUDIO.RAW, KAFKA_TOPICS.AUDIO.PROCESSED].includes(t))
-        .map(topic => ({
-          topic,
-          numPartitions: 1,
-          replicationFactor: 1
-        }))
-    ];
+    const topicConfigs = allTopics.map(topic => ({
+      topic,
+      numPartitions: 5,  // 모든 토픽 5개 파티션으로 통일
+      replicationFactor: 1
+    }));
 
-    await admin.createTopics({ topics: topicConfigs });
+    await admin.createTopics({
+      topics: topicConfigs,
+      waitForLeaders: true
+    });
 
-    console.log('Successfully created topics:', topics);
+    console.log('Successfully created topics');
     await admin.disconnect();
   } catch (error) {
     console.error('Failed to create Kafka topics:', error);

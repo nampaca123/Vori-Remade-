@@ -89,3 +89,34 @@ class MeetingMetricsAnalyzer:
                 ).alias("avg_time_in_status")
             )
         ) 
+    
+    async def calculate_trend_metrics(self, 
+            realtime_metrics_df: DataFrame,
+            meeting_metrics_df: DataFrame,
+            group_id: int) -> DataFrame:
+        """그룹별 트렌드 분석"""
+        
+        # RealTimeMetrics와 Meeting 조인
+        combined_metrics = (
+            realtime_metrics_df
+            .join(
+                meeting_metrics_df,
+                ["meetingId"]
+            )
+            .where(col("groupId") == group_id)
+        )
+        
+        # 주간/월간 집계
+        return (
+            combined_metrics
+            .groupBy(
+                window("windowStart", "7 days").alias("period"),
+            )
+            .agg(
+                avg("productivityScore").alias("avg_productivity"),
+                avg("actionableItemsCount").alias("avg_actionable_items"),
+                avg("statusUpdatesCount").alias("avg_status_updates"),
+                count("meetingId").alias("meeting_count")
+            )
+            .orderBy("period")
+        ) 

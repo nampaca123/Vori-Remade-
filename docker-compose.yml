@@ -78,6 +78,7 @@ services:
     environment:
       - SPARK_MODE=master
       - JUPYTER_ENABLE_LAB=yes
+      - DATABASE_URL=postgresql://vori:voripassword@postgres:5432/vori_db
     ports:
       - "8080:8080"  # Spark UI
       - "7077:7077"  # Spark 마스터
