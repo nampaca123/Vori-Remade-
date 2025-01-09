@@ -3,25 +3,25 @@ from pyspark.sql.functions import (
     window, count, avg, col, when, sum,
     from_unixtime, unix_timestamp, hour
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MeetingMetricsAnalyzer:
     def __init__(self, spark_session):
         self.spark = spark_session
+        logger.info("MeetingMetricsAnalyzer initialized")
         
     def calculate_productivity_score(self, 
             transcription_df: DataFrame,
             ticket_df: DataFrame,
             window_duration: str = "1 minute") -> DataFrame:
-        """회의 생산성 점수 계산
+        """회의 생산성 점수 계산"""
+        logger.info("Starting productivity score calculation")
+        logger.debug(f"Input shapes - Transcription: {transcription_df.count()}, Tickets: {ticket_df.count()}")
         
-        회의 생산성 점수 = (생성된 실행 가능 티켓 수 × 0.4) + 
-                          (의사결정 소요 시간 점수 × 0.3) + 
-                          (참여도 점수 × 0.3)
-                          
-        Returns:
-            DataFrame: 회의별, 시간대별 생산성 점수
-        """
         # 윈도우 기반 집계
+        logger.info("Creating windowed metrics")
         windowed_metrics = (
             transcription_df
             .withWatermark("timestamp", "2 minutes")
@@ -32,6 +32,7 @@ class MeetingMetricsAnalyzer:
         )
         
         # 티켓 생성 수 계산
+        logger.info("Calculating ticket counts")
         ticket_counts = (
             ticket_df
             .withWatermark("timestamp", "10 minutes")
@@ -41,23 +42,27 @@ class MeetingMetricsAnalyzer:
             )
             .agg(
                 count("ticketId").alias("ticket_count"),
-                # 실행 가능한 티켓 수 (상태가 TODO가 아닌 것)
                 sum(when(col("status") != "TODO", 1).otherwise(0))
                 .alias("actionable_tickets")
             )
         )
+        logger.debug(f"Ticket counts calculated: {ticket_counts.count()} rows")
         
         # 최종 생산성 점수 계산
-        return (
+        logger.info("Computing final productivity scores")
+        result = (
             windowed_metrics
             .join(ticket_counts, ["window", "meetingId"])
             .withColumn(
                 "productivity_score",
-                # 임시 가중치: 실행 가능 티켓(0.6), 티켓 수(0.4)
                 col("actionable_tickets") * 0.6 + 
                 col("ticket_count") * 0.4
             )
         )
+        
+        logger.info("Productivity score calculation completed")
+        logger.debug(f"Final result shape: {result.count()} rows")
+        return result
     
     def detect_patterns(self, metrics_df: DataFrame) -> DataFrame:
         """시간대별 패턴 분석"""

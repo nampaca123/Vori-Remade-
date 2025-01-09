@@ -86,22 +86,27 @@ export class TicketService {
         return { newTickets, updatedTickets };
       });
 
-      // 5. Kafka 이벤트 발행
+      // Kafka 이벤트 발행 전 로깅
+      console.log('Sending Kafka events for tickets:', {
+        newTickets: result.newTickets.length,
+        updatedTickets: result.updatedTickets.length
+      });
+
       await Promise.all([
-        sendMessage(KAFKA_TOPICS.TICKET.CREATED, { 
-          meetingId, 
+        sendMessage(KAFKA_TOPICS.TICKET.CREATED, {
+          meetingId,
           tickets: result.newTickets.map(ticket => ({
             ...ticket,
             assigneeName: ticket.assignee?.name
           }))
-        }),
-        sendMessage(KAFKA_TOPICS.TICKET.UPDATED, { 
-          meetingId, 
+        }).then(() => console.log('Created tickets event sent successfully')),
+        sendMessage(KAFKA_TOPICS.TICKET.UPDATED, {
+          meetingId,
           tickets: result.updatedTickets.map(ticket => ({
             ...ticket,
             assigneeName: ticket.assignee?.name
           }))
-        })
+        }).then(() => console.log('Updated tickets event sent successfully'))
       ]);
 
       return [...result.newTickets, ...result.updatedTickets];
