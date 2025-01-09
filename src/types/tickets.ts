@@ -1,4 +1,4 @@
-import { TicketStatus } from '@prisma/client';
+export type TicketStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
 
 export interface TicketSuggestion {
   ticketId: string;
@@ -17,12 +17,11 @@ export interface TicketUpdate {
 }
 
 export interface TranscriptAnalysis {
-  meetingId: number;
+  newTickets: TicketSuggestion[];
+  ticketUpdates: TicketUpdate[];
   meetingMetrics: {
     actionableItemsCount: number;
     statusUpdatesCount: number;
     blockersMentioned: number;
   };
-  newTickets: TicketSuggestion[];
-  ticketUpdates: TicketUpdate[];
 } 

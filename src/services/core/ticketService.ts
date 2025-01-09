@@ -1,28 +1,12 @@
 import { PrismaClient, Ticket, User } from '@prisma/client';
 import { ClaudeClient } from './claudeClient';
 import { sendMessage, KAFKA_TOPICS } from '../../lib/kafka';
-
-type TicketStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
-
-type TranscriptAnalysis = {
-  newTickets: TicketSuggestion[];
-  ticketUpdates: TicketUpdate[];
-};
-
-interface TicketSuggestion {
-  title: string;
-  content: string;
-  status: TicketStatus;
-  meetingId: number;
-  assigneeId?: number;
-}
-
-interface TicketUpdate {
-  ticketId: string;
-  newStatus: TicketStatus;
-  assigneeId?: number;
-  reason: string;
-}
+import { 
+  TicketStatus, 
+  TicketSuggestion, 
+  TicketUpdate, 
+  TranscriptAnalysis 
+} from '../../types/tickets';
 
 export class TicketService {
   constructor(
@@ -35,6 +19,10 @@ export class TicketService {
     analysis: TranscriptAnalysis
   ): Promise<Ticket[]> {
     try {
+      console.log('Analysis received:', analysis);  // 분석 결과 확인
+      console.log('New tickets:', analysis.newTickets);  // 새 티켓 목록 확인
+      console.log('Ticket updates:', analysis.ticketUpdates);  // 업데이트 목록 확인
+
       // 1. 기존 티켓 목록 조회
       const existingTickets = await this.prisma.ticket.findMany({
         where: { meetingId },

@@ -1,0 +1,6 @@
+pyspark==3.3.0
+pandas==2.1.0
+numpy==1.24.0
+redis==5.0.1
+sqlalchemy==2.0.0
+psycopg2-binary==2.9.9 
