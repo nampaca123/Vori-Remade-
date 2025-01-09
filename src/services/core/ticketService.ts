@@ -1,28 +1,12 @@
 import { PrismaClient, Ticket, User } from '@prisma/client';
 import { ClaudeClient } from './claudeClient';
 import { sendMessage, KAFKA_TOPICS } from '../../lib/kafka';
-
-type TicketStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
-
-type TranscriptAnalysis = {
-  newTickets: TicketSuggestion[];
-  ticketUpdates: TicketUpdate[];
-};
-
-interface TicketSuggestion {
-  title: string;
-  content: string;
-  status: TicketStatus;
-  meetingId: number;
-  assigneeId?: number;
-}
-
-interface TicketUpdate {
-  ticketId: string;
-  newStatus: TicketStatus;
-  assigneeId?: number;
-  reason: string;
-}
+import { 
+  TicketStatus, 
+  TicketSuggestion, 
+  TicketUpdate, 
+  TranscriptAnalysis 
+} from '../../types/tickets';
 
 export class TicketService {
   constructor(

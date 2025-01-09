@@ -4,18 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { Kafka, Consumer as KafkaConsumer } from 'kafkajs';
 import { KAFKA_TOPICS } from '../../lib/kafka';
 import { performance } from 'perf_hooks';
-
-interface TranscriptionMessage {
-  meetingId: number;
-  audioId: number;
-  transcript: string;
-  timestamp: string;
-  metrics?: {
-    kafkaDeliveryTime: number;
-    whisperProcessingTime: number;
-    totalProcessingTime: number;
-  };
-}
+import { TranscriptionMessage } from '../../types/audio';
 
 export class AudioProcessor {
   private static instance: AudioProcessor;

@@ -1,33 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient, Ticket, User } from '@prisma/client';
-
-type TicketStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
-
-export interface TicketSuggestion {
-  ticketId: string;
-  title: string;
-  content: string;
-  status: TicketStatus;
-  meetingId: number;
-  assigneeId?: number;
-}
-
-export interface TicketUpdate {
-  ticketId: string;
-  newStatus: TicketStatus;
-  assigneeId?: number;
-  reason: string;
-}
-
-export interface TranscriptAnalysis {
-  newTickets: TicketSuggestion[];
-  ticketUpdates: TicketUpdate[];
-  meetingMetrics: {
-    actionableItemsCount: number;
-    statusUpdatesCount: number;
-    blockersMentioned: number;
-  };
-}
+import { 
+  TicketStatus, 
+  TicketSuggestion, 
+  TicketUpdate, 
+  TranscriptAnalysis 
+} from '../../types/tickets';
 
 export class ClaudeClient {
   private client: Anthropic;
