@@ -1,9 +1,9 @@
-# VORI - Voice to Report (Remaster)
+# VORI Remade - Voice to Insight and Action
 
 ![VORI Logo](https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/voriLogo.png)
 
 실시간 음성 회의 내용을 텍스트화하고 작업 티켓으로 자동 변환하는 지능형 회의 관리 시스템입니다. 
-이전 AWS 기반 프로젝트를 완전한 로컬 환경으로 마이그레이션하는 것을 넘어, 다음과 같은 고도화된 기능들을 제공합니다:
+이전 AWS 서비스 기반 프로젝트를 완전한 로컬 환경으로 마이그레이션하는 것을 넘어, 다음과 같은 고도화된 기능들을 제공합니다:
 
 - WebSocket 기반 실시간 음성 처리 및 텍스트 피드백
 - Spark Streaming을 활용한 회의 효율성 분석 및 인사이트 도출

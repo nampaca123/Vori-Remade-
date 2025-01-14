@@ -21,23 +21,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 오디오 스트림 처리 (회의 생성/업데이트 포함)
-router.post('/:id/stream', async (req, res) => {
-  try {
-    const meetingId = parseInt(req.params.id);
-    const { audioData, audioId } = req.body;
-    const meeting = await meetingService.processAudioStream(
-      audioData, 
-      audioId, 
-      meetingId,
-      req.user.userId
-    );
-    res.status(202).json({ message: 'Audio processing started', meeting });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to process audio' });
-  }
-});
-
 // 회의 종료
 router.post('/:id/end', async (req, res) => {
   try {
