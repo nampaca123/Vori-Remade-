@@ -1,12 +1,7 @@
 import express from 'express';
-import { MeetingService } from '../services/meetingService';
-import { prisma } from '../lib/prisma';
-import { ClaudeClient } from '../services/core/claudeClient';
 import { auth } from '../middlewares/auth';
 
 const router = express.Router();
-const claudeClient = new ClaudeClient(prisma);
-const meetingService = new MeetingService(prisma, claudeClient);
 
 // 모든 라우터에 인증 미들웨어 적용
 router.use(auth.requireAuth);
@@ -14,6 +9,7 @@ router.use(auth.requireAuth);
 // 회의 목록 조회
 router.get('/', async (req, res) => {
   try {
+    const meetingService = req.app.get('meetingService');
     const meetings = await meetingService.getMeetings();
     res.json(meetings);
   } catch (error) {
@@ -24,6 +20,7 @@ router.get('/', async (req, res) => {
 // 회의 종료
 router.post('/:id/end', async (req, res) => {
   try {
+    const meetingService = req.app.get('meetingService');
     const meetingId = parseInt(req.params.id);
     const tickets = await meetingService.endMeeting(meetingId);
     res.json({ message: 'Meeting ended', tickets });
@@ -35,6 +32,7 @@ router.post('/:id/end', async (req, res) => {
 // 회의별 티켓 조회
 router.get('/:id/tickets', async (req, res) => {
   try {
+    const meetingService = req.app.get('meetingService');
     const meetingId = parseInt(req.params.id);
     const tickets = await meetingService.getTicketsByMeetingId(meetingId);
     res.json(tickets);
@@ -46,6 +44,7 @@ router.get('/:id/tickets', async (req, res) => {
 // 회의 관련 티켓 생성
 router.post('/:id/tickets', async (req, res) => {
   try {
+    const meetingService = req.app.get('meetingService');
     const meetingId = parseInt(req.params.id);
     const { title, content, assigneeId } = req.body;
     const ticket = await meetingService.createTicket({
@@ -63,6 +62,7 @@ router.post('/:id/tickets', async (req, res) => {
 // 티켓 수정
 router.patch('/:meetingId/tickets/:ticketId', async (req, res) => {
   try {
+    const meetingService = req.app.get('meetingService');
     const { ticketId } = req.params;
     const { title, content, status, assigneeId, reason } = req.body;
     const ticket = await meetingService.updateTicket(ticketId, {

@@ -7,11 +7,22 @@ import { KAFKA_TOPICS } from '../lib/kafka';
 import { logger } from '../middlewares/logger';
 import { TranscriptionMessage } from '../types/audio';
 
+interface KafkaMessagePayload {
+  topic: string;
+  partition: number;
+  message: {
+    value: Buffer | null;
+    [key: string]: any;
+  };
+}
+
 export class MeetingService {
   private ticketService: TicketService;
   private consumers: KafkaConsumer[] = [];
   private readonly NUM_PARTITIONS = 5;
   private kafka: Kafka;
+  private messageListeners: Array<(payload: KafkaMessagePayload) => Promise<void>> = [];
+  private isConsumerRunning: boolean = false;
 
   constructor(
     private prisma: PrismaClient,
@@ -54,39 +65,59 @@ export class MeetingService {
   }
 
   private async setupMessageHandler(consumer: KafkaConsumer) {
-    await consumer.run({
-      partitionsConsumedConcurrently: this.NUM_PARTITIONS,
-      eachMessage: async ({ topic, partition, message }) => {
-        console.log(`Processing message from partition ${partition}`);
-        try {
-          const value = JSON.parse(message.value?.toString() || '{}');
-          
-          if (!value.meetingId || !value.audioId || !value.groupId) {
-            console.warn('Received invalid message format:', value);
-            return;
+    if (this.isConsumerRunning) {
+      console.log('Consumer is already running');
+      return;
+    }
+
+    this.isConsumerRunning = true;
+    
+    try {
+      await consumer.run({
+        partitionsConsumedConcurrently: this.NUM_PARTITIONS,
+        eachMessage: async ({ topic, partition, message }) => {
+          console.log(`Processing message from partition ${partition}`);
+          try {
+            const value = JSON.parse(message.value?.toString() || '{}');
+            
+            console.log('Received message:', value);
+            
+            await Promise.all(
+              this.messageListeners.map(async (listener) => {
+                try {
+                  await listener({ topic, partition, message });
+                } catch (error) {
+                  console.error('Listener error:', error);
+                }
+              })
+            );
+
+            if (!value.meetingId || !value.audioId || !value.groupId) {
+              console.warn('Received invalid message format:', value);
+              return;
+            }
+
+            await this.prisma.meeting.upsert({
+              where: { audioId: value.audioId },
+              create: {
+                audioId: value.audioId,
+                meetingId: value.meetingId,
+                groupId: value.groupId,
+                transcript: value.transcript || '',
+              },
+              update: {
+                transcript: value.transcript || '',
+              },
+            });
+          } catch (error) {
+            console.error('Error processing message:', error);
           }
-
-          console.log(`Processing meeting ${value.meetingId} from partition ${partition}`);
-          
-          await this.prisma.meeting.upsert({
-            where: { audioId: value.audioId },
-            create: {
-              audioId: value.audioId,
-              meetingId: value.meetingId,
-              groupId: value.groupId,
-              transcript: value.transcript || '',
-            },
-            update: {
-              transcript: value.transcript || '',
-            },
-          });
-
-          console.log(`Successfully processed meeting ${value.meetingId}`);
-        } catch (error) {
-          console.error('Error processing message:', error);
-        }
-      },
-    });
+        },
+      });
+    } catch (error) {
+      this.isConsumerRunning = false;
+      throw error;
+    }
   }
 
   async cleanup() {
@@ -102,13 +133,6 @@ export class MeetingService {
 
   async endMeeting(meetingId: number) {
     try {
-      const transcriptResult = await this.waitForTranscript(meetingId);
-      
-      await this.prisma.meeting.updateMany({
-        where: { meetingId },
-        data: { transcript: transcriptResult.transcript }
-      });
-
       const meeting = await this.prisma.meeting.findFirst({
         where: { meetingId },
         include: {
@@ -133,15 +157,16 @@ export class MeetingService {
         throw new CustomError(404, 'Meeting not found');
       }
 
+      if (!meeting.transcript) {
+        throw new CustomError(400, 'No transcript available for analysis');
+      }
+
       const groupMembers = meeting.group.members.map(member => ({
         userId: member.user.userId,
         name: member.user.name || 'Unknown'
       }));
 
       const existingTickets = await this.ticketService.getTicketsByMeetingId(meetingId);
-      if (!meeting.transcript) {
-        throw new CustomError(400, 'No transcript available for analysis');
-      }
 
       const analysis = await this.claudeClient.analyzeTranscript(
         meeting.transcript,
@@ -162,6 +187,7 @@ export class MeetingService {
   async waitForTranscript(meetingId: number): Promise<TranscriptionMessage> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        this.removeMessageListener(messageHandler);
         reject(new Error('Transcript completion timeout'));
       }, 30000);
 
@@ -171,54 +197,62 @@ export class MeetingService {
         return;
       }
 
-      consumer.run({
-        eachMessage: async ({ topic, partition, message }) => {
-          try {
-            const value = JSON.parse(message.value?.toString() || '{}');
+      const messageHandler = async (payload: any) => {
+        try {
+          const value = JSON.parse(payload.message.value?.toString() || '{}');
           
-            if (value.meetingId === meetingId) {
-              if (!value.audioId || !value.groupId) {
-                throw new Error(
-                  `Invalid message format: Missing required metadata for meeting ${meetingId}`
-                );
-              }
-
-              // Upsert를 사용하여 Meeting 레코드 생성 또는 업데이트
-              await this.prisma.meeting.upsert({
-                where: {
-                  audioId: value.audioId,
-                },
-                create: {
-                  audioId: value.audioId,
-                  meetingId: value.meetingId,
-                  groupId: value.groupId,
-                  transcript: value.transcript || '',
-                },
-                update: {
-                  transcript: value.transcript || '',
-                },
-              });
-
-              const transcriptionMessage: TranscriptionMessage = {
-                meetingId: value.meetingId,
-                audioId: value.audioId,
-                transcript: value.transcript,
-                timestamp: new Date().toISOString(),
-                metrics: value.metrics
-              };
-
-              clearTimeout(timeout);
-              resolve(transcriptionMessage);
-              await consumer.disconnect();
+          if (value.meetingId === meetingId) {
+            if (!value.audioId || !value.groupId) {
+              throw new Error(
+                `Invalid message format: Missing required metadata for meeting ${meetingId}`
+              );
             }
-          } catch (error) {
+
+            await this.prisma.meeting.upsert({
+              where: { audioId: value.audioId },
+              create: {
+                audioId: value.audioId,
+                meetingId: value.meetingId,
+                groupId: value.groupId,
+                transcript: value.transcript || '',
+              },
+              update: {
+                transcript: value.transcript || '',
+              },
+            });
+
+            const transcriptionMessage: TranscriptionMessage = {
+              meetingId: value.meetingId,
+              audioId: value.audioId,
+              transcript: value.transcript,
+              timestamp: new Date().toISOString(),
+              metrics: value.metrics
+            };
+
             clearTimeout(timeout);
-            reject(error);
-            await consumer.disconnect();
+            this.removeMessageListener(messageHandler);
+            resolve(transcriptionMessage);
           }
-        },
-      });
+        } catch (error) {
+          clearTimeout(timeout);
+          this.removeMessageListener(messageHandler);
+          reject(error);
+        }
+      };
+
+      this.addMessageListener(messageHandler);
     });
+  }
+
+  private addMessageListener(listener: (payload: KafkaMessagePayload) => Promise<void>) {
+    this.messageListeners.push(listener);
+  }
+
+  private removeMessageListener(listener: (payload: KafkaMessagePayload) => Promise<void>) {
+    const index = this.messageListeners.indexOf(listener);
+    if (index > -1) {
+      this.messageListeners.splice(index, 1);
+    }
   }
 
   async getTicketsByMeetingId(meetingId: number) {

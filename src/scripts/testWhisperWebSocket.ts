@@ -55,10 +55,10 @@ async function testWhisperWebSocket(audioPath: string, meetingId: number, metada
 
 // 테스트 실행
 const testMetadata = {
-  audioId: 500,
+  audioId: 501,
   groupId: 1
 };
 
-const meetingId = 200;
+const meetingId = 201;
 const audioPath = path.join(__dirname, '../test/fixtures/test-audio.webm');
 testWhisperWebSocket(audioPath, meetingId, testMetadata); 
