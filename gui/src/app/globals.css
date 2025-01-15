@@ -3,19 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --spacing-compact: 0.75rem;
+  --spacing-comfortable: 1rem;
+  --spacing-expanded: 1.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.layout-compact {
+  --layout-spacing: var(--spacing-compact);
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+.layout-comfortable {
+  --layout-spacing: var(--spacing-comfortable);
+}
+
+.layout-expanded {
+  --layout-spacing: var(--spacing-expanded);
+}
+
+/* Dark mode styles */
+.dark {
+  --bg-primary: #1a1814;
+  --text-primary: #E8E4D9;
+}
+
+/* Light mode styles */
+.light {
+  --bg-primary: #E8E4D9;
+  --text-primary: #2F2A20;
+}
+
+/* Apply spacing to common components */
+.card, 
+.button, 
+.input {
+  padding: var(--layout-spacing);
+}
+
+.space-y > * + * {
+  margin-top: var(--layout-spacing);
+}
+
+.space-x > * + * {
+  margin-left: var(--layout-spacing);
 }
