@@ -8,6 +8,9 @@ import { specs } from './config/swagger';
 import groupRoutes from './routes/groupRoutes';
 import userRoutes from './routes/userRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
+import { prisma } from './lib/prisma';
+import { MeetingService } from './services/meetingService';
+import { ClaudeClient } from './services/core/claudeClient';
 
 const app = express();
 
@@ -16,6 +19,13 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(morganMW);
+
+// MeetingService 초기화
+const claudeClient = new ClaudeClient(prisma);
+const meetingService = new MeetingService(prisma, claudeClient);
+meetingService.initialize().catch(error => {
+  console.error('Failed to initialize MeetingService:', error);
+});
 
 // 라우터
 app.use('/api/meetings', meetingRoutes);

@@ -10,7 +10,7 @@ import { TranscriptionMessage } from '../types/audio';
 export class MeetingService {
   private ticketService: TicketService;
   private consumers: KafkaConsumer[] = [];
-  private readonly NUM_WORKERS = 5;  // 파티션 수와 동일하게 설정
+  private readonly NUM_PARTITIONS = 5;
   private kafka: Kafka;
 
   constructor(
@@ -23,37 +23,81 @@ export class MeetingService {
       clientId: 'meeting-service',
       brokers: [process.env.KAFKA_BROKER || 'kafka:9092']
     });
+
+    console.log('MeetingService initialized');
   }
 
   async initialize() {
     try {
-      await this.initializeConsumers();
-      console.log('Initialized Kafka consumers');
+      console.log('Starting MeetingService initialization...');
+      const consumer = this.kafka.consumer({ 
+        groupId: 'meeting-service-group',
+        sessionTimeout: 30000
+      });
+      
+      await consumer.connect();
+      console.log('Kafka consumer connected');
+
+      await consumer.subscribe({ 
+        topic: KAFKA_TOPICS.TRANSCRIPTION.COMPLETED,
+        fromBeginning: true
+      });
+      
+      await this.setupMessageHandler(consumer);
+      this.consumers.push(consumer);
+      
+      console.log('Successfully initialized Kafka consumer');
     } catch (error) {
-      console.error('Failed to initialize consumers:', error);
+      console.error('Failed to initialize MeetingService:', error);
       throw error;
     }
   }
 
-  private async initializeConsumers() {
-    for (let i = 0; i < this.NUM_WORKERS; i++) {
-      const consumer = this.kafka.consumer({ 
-        groupId: `meeting-service-group-${i}` 
-      });
-      await consumer.connect();
-      await consumer.subscribe({ 
-        topic: KAFKA_TOPICS.TRANSCRIPTION.COMPLETED 
-      });
-      this.consumers.push(consumer);
-    }
+  private async setupMessageHandler(consumer: KafkaConsumer) {
+    await consumer.run({
+      partitionsConsumedConcurrently: this.NUM_PARTITIONS,
+      eachMessage: async ({ topic, partition, message }) => {
+        console.log(`Processing message from partition ${partition}`);
+        try {
+          const value = JSON.parse(message.value?.toString() || '{}');
+          
+          if (!value.meetingId || !value.audioId || !value.groupId) {
+            console.warn('Received invalid message format:', value);
+            return;
+          }
+
+          console.log(`Processing meeting ${value.meetingId} from partition ${partition}`);
+          
+          await this.prisma.meeting.upsert({
+            where: { audioId: value.audioId },
+            create: {
+              audioId: value.audioId,
+              meetingId: value.meetingId,
+              groupId: value.groupId,
+              transcript: value.transcript || '',
+            },
+            update: {
+              transcript: value.transcript || '',
+            },
+          });
+
+          console.log(`Successfully processed meeting ${value.meetingId}`);
+        } catch (error) {
+          console.error('Error processing message:', error);
+        }
+      },
+    });
   }
 
-  // 서비스 종료 시 리소스 정리
   async cleanup() {
-    await Promise.all(
-      this.consumers.map(consumer => consumer.disconnect())
-    );
-    console.log('Disconnected all Kafka consumers');
+    try {
+      await Promise.all(
+        this.consumers.map(consumer => consumer.disconnect())
+      );
+      console.log('Disconnected all Kafka consumers');
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
   }
 
   async endMeeting(meetingId: number) {
