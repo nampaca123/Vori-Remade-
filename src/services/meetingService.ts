@@ -129,10 +129,47 @@ export class MeetingService {
 
       consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-          const value = JSON.parse(message.value?.toString() || '{}');
-          if (value.meetingId === meetingId && value.status === 'completed') {
+          try {
+            const value = JSON.parse(message.value?.toString() || '{}');
+          
+            if (value.meetingId === meetingId) {
+              if (!value.audioId || !value.groupId) {
+                throw new Error(
+                  `Invalid message format: Missing required metadata for meeting ${meetingId}`
+                );
+              }
+
+              // Upsert를 사용하여 Meeting 레코드 생성 또는 업데이트
+              await this.prisma.meeting.upsert({
+                where: {
+                  audioId: value.audioId,
+                },
+                create: {
+                  audioId: value.audioId,
+                  meetingId: value.meetingId,
+                  groupId: value.groupId,
+                  transcript: value.transcript || '',
+                },
+                update: {
+                  transcript: value.transcript || '',
+                },
+              });
+
+              const transcriptionMessage: TranscriptionMessage = {
+                meetingId: value.meetingId,
+                audioId: value.audioId,
+                transcript: value.transcript,
+                timestamp: new Date().toISOString(),
+                metrics: value.metrics
+              };
+
+              clearTimeout(timeout);
+              resolve(transcriptionMessage);
+              await consumer.disconnect();
+            }
+          } catch (error) {
             clearTimeout(timeout);
-            resolve(value);
+            reject(error);
             await consumer.disconnect();
           }
         },

@@ -10,11 +10,37 @@ from aiokafka.structs import TopicPartition
 logger = logging.getLogger(__name__)
 
 class KafkaClient:
-    def __init__(self):
+    def __init__(self, bootstrap_servers: List[str], client_id: str):
+        self.bootstrap_servers = bootstrap_servers
+        self.client_id = client_id
         self.producer = None
         self.consumer = None
         self.workers: List[asyncio.Task] = []
         
+    async def connect(self):
+        """Kafka 연결 초기화"""
+        try:
+            self.producer = AIOKafkaProducer(
+                bootstrap_servers=self.bootstrap_servers,
+                client_id=self.client_id,
+                value_serializer=lambda v: json.dumps(v).encode('utf-8')
+            )
+            await self.producer.start()
+            logger.info("Kafka producer connected successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to connect to Kafka: {str(e)}")
+            raise
+
+    async def disconnect(self):
+        """Kafka 연결 종료"""
+        try:
+            if self.producer:
+                await self.producer.stop()
+                logger.info("Kafka producer disconnected")
+        except Exception as e:
+            logger.error(f"Error disconnecting from Kafka: {str(e)}")
+
     async def start(self):
         """Kafka 프로듀서와 컨슈머 초기화"""
         self.producer = AIOKafkaProducer(
