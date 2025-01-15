@@ -51,13 +51,24 @@ async def websocket_endpoint(
     meeting_id: int,
     whisper_service: WhisperService = Depends(lambda: app.state.whisper_service)
 ):
+    logger.info(f"New WebSocket connection for meeting {meeting_id}")
     await websocket.accept()
     try:
         while True:
+            logger.info(f"Waiting for audio chunk from meeting {meeting_id}")
             audio_chunk = await websocket.receive_bytes()
+            logger.info(f"Received audio chunk of size {len(audio_chunk)} bytes from meeting {meeting_id}")
+            
             # 실시간 텍스트 변환 및 클라이언트에 전송
             text = await whisper_service.process_audio(meeting_id, audio_chunk)
+            logger.info(f"Processed audio chunk for meeting {meeting_id}: {text[:50]}...")
+            
             await websocket.send_json({"text": text})
+            logger.info(f"Sent transcribed text to meeting {meeting_id}")
             
     except WebSocketDisconnect:
-        await whisper_service.handle_disconnect(meeting_id) 
+        logger.info(f"WebSocket disconnected for meeting {meeting_id}")
+        await whisper_service.handle_disconnect(meeting_id)
+    except Exception as e:
+        logger.error(f"Error in WebSocket connection for meeting {meeting_id}: {str(e)}")
+        raise 

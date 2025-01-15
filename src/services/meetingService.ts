@@ -9,7 +9,9 @@ import { TranscriptionMessage } from '../types/audio';
 
 export class MeetingService {
   private ticketService: TicketService;
-  private consumer: KafkaConsumer;
+  private consumers: KafkaConsumer[] = [];
+  private readonly NUM_WORKERS = 5;  // 파티션 수와 동일하게 설정
+  private kafka: Kafka;
 
   constructor(
     private prisma: PrismaClient,
@@ -17,12 +19,41 @@ export class MeetingService {
   ) {
     this.ticketService = new TicketService(prisma, claudeClient);
     
-    const kafka = new Kafka({
+    this.kafka = new Kafka({
       clientId: 'meeting-service',
-      brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+      brokers: [process.env.KAFKA_BROKER || 'kafka:9092']
     });
+  }
 
-    this.consumer = kafka.consumer({ groupId: 'meeting-service-group' });
+  async initialize() {
+    try {
+      await this.initializeConsumers();
+      console.log('Initialized Kafka consumers');
+    } catch (error) {
+      console.error('Failed to initialize consumers:', error);
+      throw error;
+    }
+  }
+
+  private async initializeConsumers() {
+    for (let i = 0; i < this.NUM_WORKERS; i++) {
+      const consumer = this.kafka.consumer({ 
+        groupId: `meeting-service-group-${i}` 
+      });
+      await consumer.connect();
+      await consumer.subscribe({ 
+        topic: KAFKA_TOPICS.TRANSCRIPTION.COMPLETED 
+      });
+      this.consumers.push(consumer);
+    }
+  }
+
+  // 서비스 종료 시 리소스 정리
+  async cleanup() {
+    await Promise.all(
+      this.consumers.map(consumer => consumer.disconnect())
+    );
+    console.log('Disconnected all Kafka consumers');
   }
 
   async endMeeting(meetingId: number) {
@@ -84,26 +115,27 @@ export class MeetingService {
     }
   }
 
-  private async waitForTranscript(meetingId: number): Promise<TranscriptionMessage> {
+  async waitForTranscript(meetingId: number): Promise<TranscriptionMessage> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Transcript completion timeout'));
       }, 30000);
 
-      this.consumer.run({
+      const consumer = this.consumers[0];
+      if (!consumer) {
+        reject(new Error('No Kafka consumer available'));
+        return;
+      }
+
+      consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
           const value = JSON.parse(message.value?.toString() || '{}');
           if (value.meetingId === meetingId && value.status === 'completed') {
             clearTimeout(timeout);
             resolve(value);
-            await this.consumer.disconnect();
+            await consumer.disconnect();
           }
         },
-      });
-
-      this.consumer.subscribe({ 
-        topic: KAFKA_TOPICS.TRANSCRIPTION.COMPLETED,
-        fromBeginning: false 
       });
     });
   }
