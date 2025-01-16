@@ -1,177 +1,235 @@
-# VORI Remade - Voice to Insight and Action
+# VORI Remade - Voice to Insight and Action | 음성을 통한 인사이트와 액션
 
 ![VORI Logo](https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/voriLogo.png)
 
+## 프로젝트 소개 | Project Introduction
+
 VORI Remade는 조직의 생산성을 극대화하는 지능형 비즈니스 인사이트 플랫폼입니다. 회의 내용을 자동으로 분석하여 작업 티켓을 생성하고, 진행 상황을 추적하며, 업무 흐름을 최적화합니다.
+
+VORI Remade is an intelligent business insight platform that maximizes organizational productivity. It automatically analyzes meeting content to create work tickets, track progress, and optimize workflows.
 
 이전 AWS 서비스에 크게 의존하던 구조에서 벗어나, 확장성과 성능, 비용 효율성에 중점을 둔 새로운 아키텍처로 재구성되었습니다. Whisper, Kafka, Spark, PostgreSQL 등의 핵심 기술들이 마이크로서비스 아키텍처로 구현되어 각 컴포넌트의 독립적인 스케일링이 가능합니다.
 
-주요 특징:
-- 실시간 음성 처리 및 텍스트 변환 (Whisper)
-- 분산 메시징 시스템을 통한 안정적인 데이터 처리 (Kafka)
-- 대규모 회의 데이터 분석 및 인사이트 도출 (Spark)
-- 작업 관리 자동화 및 최적화
-- 마이크로서비스 기반의 확장 가능한 아키텍처
+Moving away from heavy reliance on AWS services, it has been reconstructed with a new architecture focusing on scalability, performance, and cost efficiency. Core technologies such as Whisper, Kafka, Spark, and PostgreSQL are implemented in a microservice architecture, enabling independent scaling of each component.
+
+### 주요 특징 | Key Features
+- 실시간 음성 처리 및 텍스트 변환 (Whisper) | Real-time voice processing and text conversion (Whisper)
+- 분산 메시징 시스템을 통한 안정적인 데이터 처리 (Kafka) | Reliable data processing through distributed messaging system (Kafka)
+- 대규모 회의 데이터 분석 및 인사이트 도출 (Spark) | Large-scale meeting data analysis and insight derivation (Spark)
+- 작업 관리 자동화 및 최적화 | Work management automation and optimization
+- 마이크로서비스 기반의 확장 가능한 아키텍처 | Scalable architecture based on microservices
 
 본 프로젝트는 단순한 회의록 작성 도구를 넘어, 조직의 의사결정과 업무 프로세스를 혁신하는 종합적인 솔루션을 목표로 합니다.
 
-## 목차
+## 목차 | Table of Contents
 
-1. [데이터 파이프라인 아키텍처](#데이터-파이프라인-아키텍처)
+1. [데이터 파이프라인 아키텍처 | Data Pipeline Architecture](#데이터-파이프라인-아키텍처)
    데이터 흐름도, 분산 처리 구조, 실시간성 확보 방안 및 기술 스택 선정 이유
+   Data flow diagram, distributed processing structure, real-time processing strategy, and technology stack selection rationale
 
-2. [핵심 기능](#핵심-기능)
-   - [실시간 음성 처리](#실시간-음성-처리)
-   - [티켓 자동 생성 시스템](#티켓-자동-생성-시스템)
-   - [회의 분석 파이프라인](#회의-분석-파이프라인)
+2. [핵심 기능 | Core Features](#핵심-기능)
+   - [실시간 음성 처리 | Real-time Voice Processing](#실시간-음성-처리)
+   - [티켓 자동 생성 시스템 | Automated Ticket Generation System](#티켓-자동-생성-시스템)
+   - [회의 분석 파이프라인 | Meeting Analysis Pipeline](#회의-분석-파이프라인)
 
-3. [기술 스택 및 요구사항](#기술-스택)
+3. [기술 스택 및 요구사항 | Tech Stack and Requirements](#기술-스택)
    개발 환경 구성 및 시스템 요구사항
+   Development environment setup and system requirements
 
-4. [프로젝트 배경](#프로젝트-배경)
+4. [프로젝트 배경 | Project Background](#프로젝트-배경)
    AWS 기반 프로젝트의 흐름, 상세 구현 내용 및 마이그레이션 계획
+   AWS-based project flow, detailed implementation, and migration plan
 
-5. [설치 및 실행](#설치-방법)
+5. [설치 및 실행 | Installation and Setup](#설치-방법)
 
-6. [API 문서](#api-문서)
+6. [API 문서 | API Documentation](#api-문서)
 
-7. [라이선스](#라이선스)
+7. [라이선스 | License](#라이선스)
 
-# 데이터 파이프라인 아키텍처
+# 데이터 파이프라인 아키텍처 | Data Pipeline Architecture
 
-## 데이터 흐름
+## 데이터 흐름 | Data Flow
 
-### 1. 실시간 텍스트 처리 파이프라인
+### 1. 실시간 텍스트 처리 파이프라인 | Real-time Text Processing Pipeline
 ```plaintext
-클라이언트 (음성)
+클라이언트 (음성) | Client (Voice)
       ↓
-FastAPI 서버 (WebSocket)
+FastAPI 서버 (WebSocket) | FastAPI Server (WebSocket)
       ↓
-Whisper 음성인식
+Whisper 음성인식 | Whisper Speech Recognition
       ↓
-실시간 텍스트 피드백 (WebSocket)
+실시간 텍스트 피드백 (WebSocket) | Real-time Text Feedback (WebSocket)
       ↓
 Kafka (transcription.completed)
       ↓
-Express.js 서버
+Express.js 서버 | Express.js Server
       ↓
 PostgreSQL
 ```
 
-### 2. 비즈니스 인사이트 파이프라인
+### 2. 비즈니스 인사이트 파이프라인 | Business Insight Pipeline
 ```plaintext
-PostgreSQL (회의 데이터)
+PostgreSQL (회의 데이터 | Meeting Data)
       ↓
 PySpark Streaming
       ↓
-실시간 분석 (1분 윈도우)
-  - 회의 생산성 점수
-  - 작업 처리 패턴
-  - 키워드 트렌드
+실시간 분석 (1분 윈도우) | Real-time Analysis (1-minute window)
+  - 회의 생산성 점수 | Meeting Productivity Score
+  - 작업 처리 패턴 | Task Processing Patterns
+  - 키워드 트렌드 | Keyword Trends
       ↓
-트렌드 분석 (7일 윈도우)
-  - 그룹별 생산성 추이
-  - 작업 완료율 분석
+트렌드 분석 (7일 윈도우) | Trend Analysis (7-day window)
+  - 그룹별 생산성 추이 | Group Productivity Trends
+  - 작업 완료율 분석 | Task Completion Rate Analysis
       ↓
 Kafka (analytics.insights)
       ↓
-Express.js 서버
+Express.js 서버 | Express.js Server
 ```
 
-## 아키텍처 설계 의도
+## 아키텍처 설계 의도 | Architecture Design Rationale
 
-1. **실시간 처리 최적화**
+1. **실시간 처리 최적화 | Real-time Processing Optimization**
    - WebSocket을 통한 즉각적인 음성-텍스트 변환 (평균 지연 3-4초)
    - 메모리 효율적인 버퍼 관리 (30초 주기 저장)
    - 비동기 처리를 통한 서버 부하 분산
 
-2. **분산 처리 아키텍처**
+   - Instant voice-to-text conversion via WebSocket (average latency 3-4 seconds)
+   - Memory-efficient buffer management (30-second interval saves)
+   - Server load distribution through asynchronous processing
+
+2. **분산 처리 아키텍처 | Distributed Processing Architecture**
    - FastAPI 서버: 실시간 음성 처리 전담
    - Express.js 서버: 비즈니스 로직 및 데이터 관리
    - PySpark: 대규모 데이터 분석 및 인사이트 도출
 
-3. **데이터 안정성과 확장성**
+   - FastAPI Server: Dedicated to real-time voice processing
+   - Express.js Server: Business logic and data management
+   - PySpark: Large-scale data analysis and insight derivation
+
+3. **데이터 안정성과 확장성 | Data Reliability and Scalability**
    - Kafka를 통한 신뢰성 있는 메시지 전달
    - 독립적인 컴포넌트 스케일링
    - 장애 복구 메커니즘
 
-### 핵심 기술 선택 이유
+   - Reliable message delivery through Kafka
+   - Independent component scaling
+   - Fault recovery mechanism
+
+### 핵심 기술 선택 이유 | Core Technology Selection Rationale
 
 1. **FastAPI & WebSocket**
    - 비동기 처리에 최적화된 실시간 통신
    - 낮은 지연시간의 양방향 데이터 스트림
    - 효율적인 리소스 관리
 
+   - Real-time communication optimized for asynchronous processing
+   - Low-latency bidirectional data streams
+   - Efficient resource management
+
 2. **Whisper & PySpark**
    - Whisper: 고정밀 음성인식 (GPU 가속)
    - PySpark: 대규모 데이터 분석 및 ML 파이프라인
    - 분산 처리를 통한 성능 최적화
+
+   - Whisper: High-precision speech recognition (GPU acceleration)
+   - PySpark: Large-scale data analysis and ML pipeline
+   - Performance optimization through distributed processing
 
 3. **Kafka & PostgreSQL**
    - Kafka: 안정적인 메시지 큐잉 및 이벤트 스트리밍
    - PostgreSQL: 트랜잭션 안정성 및 복잡한 쿼리 지원
    - 데이터 파이프라인 신뢰성 확보
 
-이러한 아키텍처를 통해:
-- 실시간 음성 처리의 정확성과 속도
-- 대규모 데이터의 효율적인 분석
-- 비즈니스 인사이트의 실시간 도출
-을 모두 달성할 수 있었습니다.
+   - Kafka: Reliable message queuing and event streaming
+   - PostgreSQL: Transaction stability and complex query support
+   - Data pipeline reliability assurance
 
-# 핵심 기능
+이러한 아키텍처를 통해 다음과 같은 목표를 달성할 수 있습니다: | Through this architecture, we can achieve:
+- 실시간 음성 처리의 정확성과 속도 | Accuracy and speed in real-time voice processing
+- 대규모 데이터의 효율적인 분석 | Efficient analysis of large-scale data
+- 비즈니스 인사이트의 실시간 도출 | Real-time derivation of business insights
 
-### 실시간 음성 처리
-- 음성 스트리밍 및 텍스트 변환 (평균 지연시간 3-4초)
-- WebSocket을 통한 실시간 피드백
+# 핵심 기능 | Core Features
 
-### 작업 자동화
-- 회의 내용 기반 작업 자동 생성
-- 칸반보드 자동 업데이트
-- 회의록 자동 생성
+### 실시간 음성 처리 | Real-time Voice Processing
+- 음성 스트리밍 및 텍스트 변환 (평균 지연시간 3-4초) | Voice streaming and text conversion (average latency 3-4 seconds)
+- WebSocket을 통한 실시간 피드백 | Real-time feedback through WebSocket
 
-### 데이터 분석
-- Spark ML을 활용한 회의 내용 분석
-- 키워드 추출 및 트렌드 분석
-- 회의 효율성 지표 생성
+### 작업 자동화 | Task Automation
+- 회의 내용 기반 작업 자동 생성 | Automatic task generation based on meeting content
+- 칸반보드 자동 업데이트 | Automatic kanban board updates
+- 회의록 자동 생성 | Automatic meeting minutes generation
 
-## 실시간 음성 처리
+### 데이터 분석 | Data Analysis
+- Spark ML을 활용한 회의 내용 분석 | Meeting content analysis using Spark ML
+- 키워드 추출 및 트렌드 분석 | Keyword extraction and trend analysis
+- 회의 효율성 지표 생성 | Meeting efficiency metrics generation
 
-### 개요
-WebSocket을 통해 실시간으로 음성을 수신하고 Whisper 모델을 사용하여 텍스트로 변환하는 시스템입니다. 30초 단위로 중간 저장을 수행하여 데이터 손실을 방지하고, 평균 3-4초의 지연 시간으로 실시간 피드백을 제공합니다.
+## 실시간 음성 처리 | Real-time Voice Processing
 
-### 프로세스 흐름
+### 개요 | Overview
+WebSocket을 통해 실시간으로 음성을 수신하고 Whisper 모델을 사용하여 텍스트로 변환하는 시스템입니다. 30초 단위로 중간 저장을 수행하여 데이터 손실을 방지하고, 평균 3초의 지연 시간으로 실시간 피드백을 제공합니다.
 
-1. **음성 데이터 수신 및 처리**
+A system that receives voice in real-time through WebSocket and converts it to text using the Whisper model. It prevents data loss by performing intermediate saves every 30 seconds and provides real-time feedback with an average latency of 3 seconds.
+
+### 프로세스 흐름 | Process Flow
+
+1. **음성 데이터 수신 및 처리 | Voice Data Reception and Processing**
    - WebSocket을 통한 실시간 오디오 스트림 수신
    - 스레드 풀을 통한 병렬 처리
    - 임시 파일 시스템을 활용한 효율적인 메모리 관리
 
-2. **텍스트 변환 및 버퍼 관리**
+   - Real-time audio stream reception through WebSocket
+   - Parallel processing through thread pool
+   - Efficient memory management using temporary file system
+
+2. **텍스트 변환 및 버퍼 관리 | Text Conversion and Buffer Management**
    - Whisper 모델을 통한 고정밀 음성인식
    - 30초 주기의 자동 저장 메커니즘
    - 메모리 효율적인 버퍼 관리
 
-3. **데이터 전달 및 저장**
+   - High-precision speech recognition through Whisper model
+   - Automatic save mechanism at 30-second intervals
+   - Memory-efficient buffer management
+
+3. **데이터 전달 및 저장 | Data Delivery and Storage**
    - Kafka를 통한 안정적인 메시지 전달
    - 부분/최종 상태 구분 저장
    - 실시간 피드백을 위한 WebSocket 응답
 
-### 구현 시 고려사항
+   - Reliable message delivery through Kafka
+   - Partial/final state differentiated storage
+   - WebSocket response for real-time feedback
 
-1. **성능 최적화**
+### 구현 시 고려사항 | Implementation Considerations
+
+1. **성능 최적화 | Performance Optimization**
    - ThreadPoolExecutor를 통한 병렬 처리
    - 비동기 I/O 처리
    - 메모리 사용량 최적화
 
-2. **안정성**
+   - Parallel processing through ThreadPoolExecutor
+   - Asynchronous I/O processing
+   - Memory usage optimization
+
+2. **안정성 | Stability**
    - 주기적인 중간 저장
    - 예외 상황 복구 메커니즘
    - 연결 종료 시 데이터 정리
 
-3. **확장성**
+   - Periodic intermediate saves
+   - Exception recovery mechanism
+   - Data cleanup on connection termination
+
+3. **확장성 | Scalability**
    - 다양한 음성 인식 모델 지원 가능
    - 독립적인 스케일링
    - 유연한 설정 관리
+
+   - Support for various speech recognition models
+   - Independent scaling
+   - Flexible configuration management
 
 ### 핵심 기술 선택 이유
 
@@ -180,15 +238,27 @@ WebSocket을 통해 실시간으로 음성을 수신하고 Whisper 모델을 사
    - 실시간 양방향 통신
    - 개발 생산성
 
+   - Performance optimized for asynchronous processing
+   - Real-time bidirectional communication
+   - Development productivity
+
 2. **Whisper**
-   - 높은 정확도
-   - 다국어 지원
-   - 오픈소스 활용성
+   - 모델 다양성을 통한 확장 가능성 (tiny부터 large까지)
+   - 실시간 트랜스크립션 지원 (평균 3-4초 지연)
+   - 오픈소스 활용을 통한 커스터마이징
+
+   - Scalability through model diversity (from tiny to large)
+   - Real-time transcription support (3-4s average latency)
+   - Customization through open source utilization
 
 3. **ThreadPoolExecutor**
    - 효율적인 리소스 관리
    - 안정적인 병렬 처리
    - 유연한 작업 분배
+
+   - Efficient resource management
+   - Stable parallel processing
+   - Flexible task distribution
 
 ## 티켓 자동 생성 시스템
 
@@ -367,24 +437,33 @@ Kafka와 Spark는 대규모 데이터 처리를 위한 상호보완적인 분산
 
 2. **주요 처리 단계**
    a. **데이터 수집 (Kafka)**
-      - 음성 인식 결과
-      - 티켓 생성/변경 이벤트
-      - 회의 메타데이터
+      - 음성 인식 결과 (transcription.completed)
+      - 티켓 생성 이벤트 (ticket.created)
+      - 티켓 업데이트 이벤트 (ticket.updated)
+      - 분석 메트릭스 (analytics.ticket.metrics)
+      - 그룹별 트렌드 (analytics.trends.groups)
 
    b. **실시간 처리 (Spark Streaming)**
-      - 윈도우 기반 집계 (1분 단위)
-      - 생산성 점수 계산
-      - 티켓 상태 분석
+      - 티켓 메트릭스 계산 (TicketAnalyzer)
+      - 텍스트 분석 및 키워드 추출 (MeetingAnalysisModel)
+      - 생산성 점수 계산 (MeetingMetricsAnalyzer)
+      - 토픽 클러스터링
 
    c. **트렌드 분석**
-      - 그룹별 7일 단위 집계
-      - 평균 생산성 추이
-      - 작업 처리 패턴 분석
+      - 그룹별 독립적 트렌드 분석
+      - 실시간 메트릭스와 회의 메트릭스 조인
+      - 7일 단위 집계 및 평균 계산
 
 3. **성능 최적화**
-   - Watermark 설정: 2분 (실시간), 10분 (티켓)
+   - Watermark 설정: 2분 (실시간), 1일 (워크플로우)
    - 체크포인트 위치: `/tmp/checkpoints/`
-   - 그룹별 독립적인 토픽 파티셔닝
+   - 비동기 DB 저장 (PostgreSQL)
+   - 스트림 처리 모드: "append"
+
+4. **데이터 저장**
+   - PostgreSQL: 패턴 분석, 실시간 메트릭스, 생산성 패턴
+   - Kafka: 실시간 분석 결과, 그룹별 트렌드
+   - 체크포인트: 스트림 처리 상태 보존
 
 ### 데이터 활용
 
@@ -392,16 +471,19 @@ Kafka와 Spark는 대규모 데이터 처리를 위한 상호보완적인 분산
    - 회의별 생산성 점수 추적
    - 티켓 생성 및 상태 변경 추이
    - 블로커 발생 감지
+   - 실행 가능한 작업 수 추적
 
 2. **트렌드 분석**
    - 그룹별 생산성 추이
    - 회의 효율성 비교
    - 작업 처리 패턴 식별
+   - 시간대별 생산성 패턴
 
 3. **인사이트 도출**
    - 최적 회의 시간대 추천
    - 생산성 저하 요인 분석
    - 팀별 성과 비교
+   - 워크플로우 병목 지점 식별
 
 # 기술 스택
 
