@@ -10,6 +10,10 @@ VORI Remade는 조직의 생산성을 극대화하는 지능형 비즈니스 인
 
 VORI Remade is an intelligent business insight platform that maximizes organizational productivity. It automatically analyzes meeting content to create work tickets, track progress, and optimize workflows.
 
+AWS 클라우드 내 서비스들을 사용하여 만들었던 기존 Vori 프로젝트의 부족한 부분을 보충하기 위해 기초부터 재설계된 프로젝트입니다. 기존 대비 57프로 빠른 워크 플로우와, 다양한 추가 기능을 지니고 있습니다.
+
+This project has been redesigned from the ground up to address the limitations of the original Vori project, which was built using AWS cloud services. It features a 57% faster workflow compared to the original, along with various additional functionalities.
+
 이전 레거시 프로젝트의 AWS 서비스에 크게 의존하던 구조에서 벗어나, 확장성과 성능, 비용 효율성에 중점을 둔 새로운 아키텍처로 재구성되었습니다. Whisper, Kafka, Spark, PostgreSQL 등의 핵심 기술들이 마이크로서비스 아키텍처로 구현되어 각 컴포넌트의 독립적인 스케일링이 가능합니다.
 
 Moving away from the heavy reliance on AWS services in its legacy project, it has been reconstructed with a new architecture focusing on scalability, performance, and cost efficiency. Core technologies such as Whisper, Kafka, Spark, and PostgreSQL are implemented in a microservice architecture, enabling independent scaling of each component.
