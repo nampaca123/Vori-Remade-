@@ -1,7 +1,7 @@
 # VORI -Remade- | Voice to Workflow Intelligence
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/voriLogo.png" alt="VORI Logo" width="400"/>
+  <img src="./voriLogo.png" alt="VORI Logo" width="400"/>
 </div>
 
 ## 프로젝트 소개 | Project Introduction
@@ -10,9 +10,9 @@ VORI Remade는 조직의 생산성을 극대화하는 지능형 비즈니스 인
 
 VORI Remade is an intelligent business insight platform that maximizes organizational productivity. It automatically analyzes meeting content to create work tickets, track progress, and optimize workflows.
 
-이전 AWS 서비스에 크게 의존하던 구조에서 벗어나, 확장성과 성능, 비용 효율성에 중점을 둔 새로운 아키텍처로 재구성되었습니다. Whisper, Kafka, Spark, PostgreSQL 등의 핵심 기술들이 마이크로서비스 아키텍처로 구현되어 각 컴포넌트의 독립적인 스케일링이 가능합니다.
+이전 레거시 프로젝트의 AWS 서비스에 크게 의존하던 구조에서 벗어나, 확장성과 성능, 비용 효율성에 중점을 둔 새로운 아키텍처로 재구성되었습니다. Whisper, Kafka, Spark, PostgreSQL 등의 핵심 기술들이 마이크로서비스 아키텍처로 구현되어 각 컴포넌트의 독립적인 스케일링이 가능합니다.
 
-Moving away from heavy reliance on AWS services, it has been reconstructed with a new architecture focusing on scalability, performance, and cost efficiency. Core technologies such as Whisper, Kafka, Spark, and PostgreSQL are implemented in a microservice architecture, enabling independent scaling of each component.
+Moving away from the heavy reliance on AWS services in its legacy project, it has been reconstructed with a new architecture focusing on scalability, performance, and cost efficiency. Core technologies such as Whisper, Kafka, Spark, and PostgreSQL are implemented in a microservice architecture, enabling independent scaling of each component.
 
 ### 주요 기술 스택 | Core Tech Stack
 <div align="center">
@@ -550,6 +550,10 @@ Even if system failures occur, data is preserved in Kafka allowing Spark to auto
 
 # 레거시 프로젝트 | Legacy Project
 
+<div align="center">
+  <img src="./oldVori.png" alt="oldVori" width="400"/>
+</div>
+
 ### 기존 AWS 프로젝트 플로우 | Previous AWS Project Flow
 1. 클라이언트에서 오디오 스트림 시작 | Client Audio Stream Initiation
    - API Gateway를 통해 1분 단위로 오디오 데이터 전송
@@ -761,7 +765,7 @@ def create_end_txt(randomkey):
 
 #### 5. 주요 기술적 도전과 해결 | Major Technical Challenges and Solutions
 
-![awsVori_VPCEndpoint_Lesson](https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/awsVori_VPCEndpoint_Lesson.png)
+![AWS VPC Endpoint Lesson](./awsVori_VPCEndpoint_Lesson.png)
 
 ##### 문제 | Problem:
 Lambda와 MSK가 VPC 내에 배포되었지만, S3와의 연결에 문제가 있었습니다. NAT 게이트웨이와 인터넷 게이트웨이를 구성했음에도 불구하고 S3와의 통신이 어려웠습니다.
