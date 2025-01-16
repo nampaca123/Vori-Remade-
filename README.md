@@ -1,6 +1,8 @@
-# VORI Remade - Voice to Workflow Intelligence
+# VORI -Remade- | Voice to Workflow Intelligence
 
-![VORI Logo](https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/voriLogo.png)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/voriLogo.png" alt="VORI Logo" width="400"/>
+</div>
 
 ## 프로젝트 소개 | Project Introduction
 
