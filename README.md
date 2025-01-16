@@ -1,4 +1,4 @@
-# VORI Remade - Voice to Insight and Action | 음성을 통한 인사이트와 액션
+# VORI Remade - Voice to Workflow Intelligence
 
 ![VORI Logo](https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/voriLogo.png)
 
@@ -12,17 +12,19 @@ VORI Remade is an intelligent business insight platform that maximizes organizat
 
 Moving away from heavy reliance on AWS services, it has been reconstructed with a new architecture focusing on scalability, performance, and cost efficiency. Core technologies such as Whisper, Kafka, Spark, and PostgreSQL are implemented in a microservice architecture, enabling independent scaling of each component.
 
-### Core Tech Stack
-![WebSocket](https://img.shields.io/badge/WebSocket-010101?style=for-the-badge&logo=socket.io&logoColor=white)
-![Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Spark](https://img.shields.io/badge/Apache%20Spark-E25A1C?style=for-the-badge&logo=apache-spark&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![NodeJS](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+### 주요 기술 스택 | Core Tech Stack
+<div align="center">
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/socketio/socketio-original.svg" alt="WebSocket" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/apachekafka/apachekafka-original.svg" alt="Kafka" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" alt="Python" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/fastapi/fastapi-original.svg" alt="FastAPI" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/apache/apache-original.svg" alt="Spark" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/typescript/typescript-original.svg" alt="TypeScript" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original.svg" alt="NodeJS" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/express/express-original.svg" alt="Express" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/prisma/prisma-original.svg" alt="Prisma" height="40"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original.svg" alt="PostgreSQL" height="40"/>
+</div>
 
 ### 주요 특징 | Key Features
 - 실시간 음성 처리 및 텍스트 변환 (Whisper) | Real-time voice processing and text conversion (Whisper)
@@ -35,28 +37,28 @@ Moving away from heavy reliance on AWS services, it has been reconstructed with 
 
 ## 목차 | Table of Contents
 
-1. [데이터 파이프라인 아키텍처 | Data Pipeline Architecture](#데이터-파이프라인-아키텍처)
+1. [데이터 파이프라인 아키텍처 | Data Pipeline Architecture](#데이터-파이프라인-아키텍처--data-pipeline-architecture)
    데이터 흐름도, 분산 처리 구조, 실시간성 확보 방안 및 기술 스택 선정 이유
    Data flow diagram, distributed processing structure, real-time processing strategy, and technology stack selection rationale
 
-2. [핵심 기능 | Core Features](#핵심-기능)
-   - [실시간 음성 처리 | Real-time Voice Processing](#실시간-음성-처리)
-   - [티켓 자동 생성 시스템 | Automated Ticket Generation System](#티켓-자동-생성-시스템)
-   - [회의 분석 파이프라인 | Meeting Analysis Pipeline](#회의-분석-파이프라인)
+2. [핵심 기능 | Core Features](#핵심-기능--core-features)
+   - [실시간 음성 처리 | Real-time Voice Processing](#실시간-음성-처리--real-time-voice-processing)
+   - [티켓 자동 생성 시스템 | Automated Ticket Generation System](#티켓-자동-생성-시스템--automated-ticket-generation-system)
+   - [회의 분석 파이프라인 | Meeting Analysis Pipeline](#회의-분석-파이프라인--meeting-analysis-pipeline)
 
-3. [기술 스택 및 요구사항 | Tech Stack and Requirements](#기술-스택)
+3. [기술 스택 및 요구사항 | Tech Stack and Requirements](#기술-스택-및-요구사항--tech-stack-and-requirements)
    개발 환경 구성 및 시스템 요구사항
    Development environment setup and system requirements
 
-4. [레거시 프로젝트 | Legacy Project](#레거시-프로젝트)
+4. [레거시 프로젝트 | Legacy Project](#레거시-프로젝트--legacy-project)
    AWS 기반 프로젝트의 흐름, 상세 구현 내용 및 마이그레이션 계획
    AWS-based project flow, detailed implementation, and migration plan
 
-5. [설치 및 실행 | Installation and Setup](#설치-방법)
+5. [설치 및 실행 | Installation and Setup](#설치-및-실행--installation-and-setup)
 
-6. [API 문서 | API Documentation](#api-문서)
+6. [API 문서 | API Documentation](#api-문서--api-documentation)
 
-7. [라이선스 | License](#라이선스)
+7. [라이선스 | License](#라이선스--license)
 
 # 데이터 파이프라인 아키텍처 | Data Pipeline Architecture
 
