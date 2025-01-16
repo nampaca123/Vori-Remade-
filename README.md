@@ -12,6 +12,18 @@ VORI Remade is an intelligent business insight platform that maximizes organizat
 
 Moving away from heavy reliance on AWS services, it has been reconstructed with a new architecture focusing on scalability, performance, and cost efficiency. Core technologies such as Whisper, Kafka, Spark, and PostgreSQL are implemented in a microservice architecture, enabling independent scaling of each component.
 
+### Core Tech Stack
+![WebSocket](https://img.shields.io/badge/WebSocket-010101?style=for-the-badge&logo=socket.io&logoColor=white)
+![Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Spark](https://img.shields.io/badge/Apache%20Spark-E25A1C?style=for-the-badge&logo=apache-spark&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![NodeJS](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+
 ### 주요 특징 | Key Features
 - 실시간 음성 처리 및 텍스트 변환 (Whisper) | Real-time voice processing and text conversion (Whisper)
 - 분산 메시징 시스템을 통한 안정적인 데이터 처리 (Kafka) | Reliable data processing through distributed messaging system (Kafka)
@@ -36,7 +48,7 @@ Moving away from heavy reliance on AWS services, it has been reconstructed with 
    개발 환경 구성 및 시스템 요구사항
    Development environment setup and system requirements
 
-4. [프로젝트 배경 | Project Background](#프로젝트-배경)
+4. [레거시 프로젝트 | Legacy Project](#레거시-프로젝트)
    AWS 기반 프로젝트의 흐름, 상세 구현 내용 및 마이그레이션 계획
    AWS-based project flow, detailed implementation, and migration plan
 
@@ -90,65 +102,58 @@ Express.js 서버 | Express.js Server
 ## 아키텍처 설계 의도 | Architecture Design Rationale
 
 1. **실시간 처리 최적화 | Real-time Processing Optimization**
-   - WebSocket을 통한 즉각적인 음성-텍스트 변환 (평균 지연 3-4초)
-   - 메모리 효율적인 버퍼 관리 (30초 주기 저장)
-   - 비동기 처리를 통한 서버 부하 분산
+   - WebSocket과 Whisper를 통한 실시간 음성-텍스트 변환 구현
+   - 주기적인 DB 저장을 통한 선제적 작업 처리
+   - 프로세스 모니터링 및 상태 추적 시스템
 
-   - Instant voice-to-text conversion via WebSocket (average latency 3-4 seconds)
-   - Memory-efficient buffer management (30-second interval saves)
-   - Server load distribution through asynchronous processing
+   - Real-time voice-to-text conversion through WebSocket and Whisper
+   - Proactive task processing through periodic DB saves
+   - Process monitoring and status tracking system
 
-2. **분산 처리 아키텍처 | Distributed Processing Architecture**
-   - FastAPI 서버: 실시간 음성 처리 전담
-   - Express.js 서버: 비즈니스 로직 및 데이터 관리
-   - PySpark: 대규모 데이터 분석 및 인사이트 도출
+2. **로드밸런싱 | Load Balancing**
+   - Kafka를 통한 데이터 손실 방지 및 파티션 기반 확장성 확보
+   - Kafka-Spark 연동을 통한 대규모 데이터 안정성 보장
+   - 토큰 최적화 및 내부 모델 기반 업무 관리
 
-   - FastAPI Server: Dedicated to real-time voice processing
-   - Express.js Server: Business logic and data management
-   - PySpark: Large-scale data analysis and insight derivation
+   - Data loss prevention and partition-based scalability through Kafka
+   - Large-scale data stability through Kafka-Spark integration
+   - Token optimization and internal model-based task management
 
-3. **데이터 안정성과 확장성 | Data Reliability and Scalability**
-   - Kafka를 통한 신뢰성 있는 메시지 전달
-   - 독립적인 컴포넌트 스케일링
-   - 장애 복구 메커니즘
+3. **마이크로서비스 아키텍처 | Microservice Architecture**
+   - 서비스별 독립 서버 운영을 통한 확장성 확보
+   - 대용량 요청 및 데이터 처리를 위한 안정적 시스템 구축
 
-   - Reliable message delivery through Kafka
-   - Independent component scaling
-   - Fault recovery mechanism
+   - Scalability through independent server operation per service
+   - Stable system for handling large-scale requests and data processing
 
 ### 핵심 기술 선택 이유 | Core Technology Selection Rationale
 
-1. **FastAPI & WebSocket**
-   - 비동기 처리에 최적화된 실시간 통신
-   - 낮은 지연시간의 양방향 데이터 스트림
-   - 효율적인 리소스 관리
+1. **WebSocket & Whisper**
+   - 실시간 양방향 통신을 통한 음성 처리 현황 모니터링
+   - 녹음 즉시 텍스트화하여 작업 지연 방지
+   - 주기적 중간 저장으로 데이터 안정성 확보
 
-   - Real-time communication optimized for asynchronous processing
-   - Low-latency bidirectional data streams
-   - Efficient resource management
+   - Real-time monitoring through bidirectional communication
+   - Immediate text conversion to prevent task delays
+   - Data stability through periodic intermediate saves
 
-2. **Whisper & PySpark**
-   - Whisper: 고정밀 음성인식 (GPU 가속)
-   - PySpark: 대규모 데이터 분석 및 ML 파이프라인
-   - 분산 처리를 통한 성능 최적화
+2. **Kafka & Spark**
+   - 파티셔닝 기반 로드밸런싱 시스템
+   - LLM 의존도 감소 및 대규모 데이터의 안정적 처리
+   - 분산 처리를 통한 시스템 안정성 확보
 
-   - Whisper: High-precision speech recognition (GPU acceleration)
-   - PySpark: Large-scale data analysis and ML pipeline
-   - Performance optimization through distributed processing
+   - Partition-based load balancing system
+   - Reduced LLM dependency and stable large-scale data processing
+   - System stability through distributed processing
 
-3. **Kafka & PostgreSQL**
-   - Kafka: 안정적인 메시지 큐잉 및 이벤트 스트리밍
-   - PostgreSQL: 트랜잭션 안정성 및 복잡한 쿼리 지원
-   - 데이터 파이프라인 신뢰성 확보
+3. **Claude 3.5 API & PostgreSQL**
+   - Claude의 높은 토큰 처리량 활용
+   - Claude-Spark-PostgreSQL 연동을 통한 시계열 분석 등 고급 작업 수행
+   - 로컬 DB 활용으로 네트워크 레이턴시 최소화 및 JSON 데이터 안정적 저장
 
-   - Kafka: Reliable message queuing and event streaming
-   - PostgreSQL: Transaction stability and complex query support
-   - Data pipeline reliability assurance
-
-이러한 아키텍처를 통해 다음과 같은 목표를 달성할 수 있습니다: | Through this architecture, we can achieve:
-- 실시간 음성 처리의 정확성과 속도 | Accuracy and speed in real-time voice processing
-- 대규모 데이터의 효율적인 분석 | Efficient analysis of large-scale data
-- 비즈니스 인사이트의 실시간 도출 | Real-time derivation of business insights
+   - Utilizing Claude's high token processing capacity
+   - Advanced operations like time series analysis through Claude-Spark-PostgreSQL integration
+   - Network latency minimization and stable JSON storage through local DB
 
 # 핵심 기능 | Core Features
 
@@ -204,83 +209,68 @@ A system that receives voice in real-time through WebSocket and converts it to t
 
 ### 구현 시 고려사항 | Implementation Considerations
 
-1. **성능 최적화 | Performance Optimization**
-   - ThreadPoolExecutor를 통한 병렬 처리
-   - 비동기 I/O 처리
-   - 메모리 사용량 최적화
+1. **실시간 처리 최적화 | Real-time Processing Optimization**
+   - WebSocket을 통한 양방향 실시간 음성 스트리밍
+   - Whisper 모델의 병렬 처리로 평균 3-4초 지연시간 달성
+   - 메모리 효율적인 오디오 버퍼 관리
 
-   - Parallel processing through ThreadPoolExecutor
-   - Asynchronous I/O processing
-   - Memory usage optimization
+   - Bidirectional real-time voice streaming through WebSocket
+   - Average 3-4s latency achieved through Whisper model parallel processing
+   - Memory-efficient audio buffer management
 
-2. **안정성 | Stability**
-   - 주기적인 중간 저장
-   - 예외 상황 복구 메커니즘
-   - 연결 종료 시 데이터 정리
+2. **데이터 안정성 | Data Stability**
+   - 30초 주기의 자동 중간 저장 메커니즘
+   - 네트워크 불안정 상황 대비 예외 처리
+   - 세션 종료 시 데이터 정리 및 최종 저장
 
-   - Periodic intermediate saves
-   - Exception recovery mechanism
-   - Data cleanup on connection termination
+   - Automatic intermediate save mechanism at 30-second intervals
+   - Exception handling for network instability
+   - Data cleanup and final save on session termination
 
-3. **확장성 | Scalability**
-   - 다양한 음성 인식 모델 지원 가능
-   - 독립적인 스케일링
-   - 유연한 설정 관리
+3. **확장 가능성 | Scalability**
+   - Whisper 모델 다양성 활용 (tiny부터 large까지)
+   - 오픈소스 기반 커스텀 모델 적용 가능
+   - 실시간 처리량에 따른 유연한 리소스 조정
 
-   - Support for various speech recognition models
-   - Independent scaling
-   - Flexible configuration management
+   - Utilizing Whisper model diversity (from tiny to large)
+   - Custom model application based on open source
+   - Flexible resource adjustment according to real-time throughput
 
-### 핵심 기술 선택 이유
+## 티켓 자동 생성 시스템 | Automated Ticket Generation System
 
-1. **FastAPI & WebSocket**
-   - 비동기 처리에 최적화된 성능
-   - 실시간 양방향 통신
-   - 개발 생산성
-
-   - Performance optimized for asynchronous processing
-   - Real-time bidirectional communication
-   - Development productivity
-
-2. **Whisper**
-   - 모델 다양성을 통한 확장 가능성 (tiny부터 large까지)
-   - 실시간 트랜스크립션 지원 (평균 3-4초 지연)
-   - 오픈소스 활용을 통한 커스터마이징
-
-   - Scalability through model diversity (from tiny to large)
-   - Real-time transcription support (3-4s average latency)
-   - Customization through open source utilization
-
-3. **ThreadPoolExecutor**
-   - 효율적인 리소스 관리
-   - 안정적인 병렬 처리
-   - 유연한 작업 분배
-
-   - Efficient resource management
-   - Stable parallel processing
-   - Flexible task distribution
-
-## 티켓 자동 생성 시스템
-
-### 개요
+### 개요 | Overview
 회의 내용을 자동으로 분석하여 작업 티켓을 생성하고 관리하는 시스템입니다. 현재는 회의 종료 시점에 일괄 처리 방식으로 구현하되, 추후 실시간 WebSocket 기반으로 마이그레이션할 수 있는 확장성 있는 구조로 설계합니다.
 
-### 프로세스 흐름
+A system that automatically analyzes meeting content to create and manage work tickets. Currently implemented as a batch process at meeting end, designed with an extensible structure for future migration to real-time WebSocket-based processing.
 
-1. **회의 종료 감지**
+### 프로세스 흐름 | Process Flow
+
+1. **회의 종료 감지 | Meeting End Detection**
    - 임시 방안: 클라이언트에서 `/api/meetings/{meetingId}/end` API 호출
    - 향후 계획: WebSocket 연결 종료 또는 일정 시간 동안의 무음 감지
 
-2. **트랜스크립트 수집 및 정리**
+   - Temporary solution: Client calls `/api/meetings/{meetingId}/end` API
+   - Future plan: WebSocket connection termination or silence detection
+
+2. **트랜스크립트 수집 및 정리 | Transcript Collection and Organization**
    - 동일한 meetingId를 가진 모든 Meeting 레코드 조회
    - createdAt 타임스탬프 기준으로 정렬
    - transcript 필드들을 시간 순서대로 연결
    - 중복 내용 제거 및 문맥 정리
 
-3. **Claude API 통합**
+   - Query all Meeting records with the same meetingId
+   - Sort by createdAt timestamp
+   - Concatenate transcript fields in chronological order
+   - Remove duplicates and organize context
+
+3. **Claude API 통합 | Claude API Integration**
    - 입력: 정리된 회의 내용 전문
    - 요청: 작업 상태별(TODO, IN_PROGRESS, DONE) 분류
    - 응답 형식: Prisma Ticket 모델과 호환되는 JSON 배열
+
+   - Input: Organized meeting content
+   - Request: Classification by task status (TODO, IN_PROGRESS, DONE)
+   - Response format: JSON array compatible with Prisma Ticket model
    ```json
    {
      "tickets": [
@@ -294,99 +284,127 @@ A system that receives voice in real-time through WebSocket and converts it to t
    }
    ```
 
-4. **티켓 생성 및 저장**
+4. **티켓 생성 및 저장 | Ticket Creation and Storage**
    - Claude API 응답을 Ticket 모델로 변환
    - Prisma를 통한 일괄 티켓 생성
    - 생성된 티켓 목록 클라이언트에 반환
 
-5. **에러 처리 및 복구**
+   - Convert Claude API response to Ticket model
+   - Batch ticket creation through Prisma
+   - Return created ticket list to client
+
+5. **에러 처리 및 복구 | Error Handling and Recovery**
    - 부분적 성공에 대한 처리 (일부 티켓만 생성된 경우)
    - 실패한 요청에 대한 재시도 메커니즘
    - 상세 에러 로깅
 
-### 구현 시 고려사항
+   - Handling partial success (when only some tickets are created)
+   - Retry mechanism for failed requests
+   - Detailed error logging
 
-1. **확장성**
-   - WebSocket 기반 실시간 처리로의 마이그레이션 용이성
-   - 다양한 LLM 모델 지원 가능성
-   - 멀티 테넌트 지원
+### 구현 시 고려사항 | Implementation Considerations
 
-2. **신뢰성**
-   - 중복 티켓 생성 방지
-   - 트랜잭션 처리
-   - 데이터 정합성 보장
+1. **LLM 활용 최적화 | LLM Utilization Optimization**
+   - 복잡한 의사결정이 필요한 작업만 선별적 LLM 활용
+   - 맥락 기반 작업 우선순위 자동 설정
+   - 시스템 내부 모델을 통한 반복 작업 처리
 
-3. **성능**
-   - 대용량 트랜스크립트 처리
-   - Claude API 요청 최적화
-   - 비동기 처리를 통한 응답 시간 최소화
+   - Selective LLM utilization for complex decision-making tasks
+   - Context-based automatic task prioritization
+   - Repetitive task processing through internal system models
 
-### 향후 개선 계획
+2. **데이터 처리 효율성 | Data Processing Efficiency**
+   - 티켓 메타데이터 기반 중복 필터링
+   - 작업 이력 추적을 통한 패턴 학습
+   - 실시간 상태 업데이트 최적화
 
-1. **실시간 처리**
-   - WebSocket 기반 실시간 음성 인식
-   - 스트리밍 방식의 티켓 생성
-   - 실시간 피드백 시스템
+   - Duplicate filtering based on ticket metadata
+   - Pattern learning through task history tracking
+   - Real-time status update optimization
 
-2. **정확도 향상**
-   - 컨텍스트 인식 개선
-   - 작업 상태 분류 정확도 향상
-   - 중복 감지 알고리즘 개선
+3. **자동화 정확도 향상 | Automation Accuracy Improvement**
+   - 그룹별 작업 패턴 학습 및 적용
+   - 히스토리 기반 할당 정확도 개선
+   - 상태 변경 의도 검증 시스템
 
-### 티켓 상태 자동 갱신
-1. **회의 중 티켓 상태 감지**
+   - Learning and applying group-specific work patterns
+   - Assignment accuracy improvement based on history
+   - Status change intention verification system
+
+### 티켓 상태 자동 갱신 | Automatic Ticket Status Update
+
+1. **회의 중 티켓 상태 감지 | In-meeting Ticket Status Detection**
    - 기존 티켓의 상태 변경 사항 자동 인식
    - 예시 시나리오:
+
+   - Automatic recognition of existing ticket status changes
+   - Example scenarios:
      ```
      "백엔드 API 문서화 작업을 현재 진행하고 있습니다." 
      → 해당 티켓 상태 'TODO' → 'IN_PROGRESS' 자동 갱신
+
+     "Backend API documentation work is currently in progress."
+     → Auto-update ticket status 'TODO' → 'IN_PROGRESS'
      
      "프론트엔드 로그인 페이지 구현이 완료되었습니다." 
      → 해당 티켓 상태 'IN_PROGRESS' → 'DONE' 자동 갱신
+
+     "Frontend login page implementation has been completed."
+     → Auto-update ticket status 'IN_PROGRESS' → 'DONE'
      ```
 
-2. **상태 변경 프로세스**
+2. **상태 변경 프로세스 | Status Change Process**
    - 회의 내용에서 기존 티켓 제목과 매칭되는 키워드 추출
    - 문맥 기반 상태 변경 의도 파악
    - Prisma를 통한 티켓 상태 업데이트
    - 변경 이력 추적 및 로깅
 
-3. **정확도 향상 방안**
+   - Extract keywords matching existing ticket titles from meeting content
+   - Context-based status change intention analysis
+   - Ticket status update through Prisma
+   - Change history tracking and logging
+
+3. **정확도 향상 방안 | Accuracy Improvement Measures**
    - 유사도 기반 티켓 매칭 (제목 완전 일치가 아닌 경우 대응)
    - 상태 변경 의도 명확성 검증
    - 변경 전 현재 상태 확인 (잘못된 상태 전이 방지)
 
-4. **실시간 동기화**
-   - 상태 변경 시 WebSocket을 통한 즉시 알림
-   - 칸반보드 실시간 업데이트
-   - 관련 팀원들에게 상태 변경 알림
+   - Similarity-based ticket matching (handling non-exact title matches)
+   - Status change intention clarity verification
+   - Current status verification before changes (preventing incorrect state transitions)
 
-## 회의 분석 파이프라인
+# 회의 분석 파이프라인 | Meeting Analysis Pipeline
 
-### 개요
+### 개요 | Overview
 PySpark와 Kafka를 활용하여 실시간 회의 데이터를 분석하고, 조직의 의사결정 패턴과 생산성을 측정하는 시스템입니다.
 
-#### 왜 Spark와 Kafka인가?
+A system that analyzes real-time meeting data using PySpark and Kafka to measure organizational decision-making patterns and productivity.
+
+#### 왜 Spark와 Kafka인가? | Why Spark and Kafka?
 Kafka와 Spark는 대규모 데이터 처리를 위한 상호보완적인 분산 시스템입니다. Kafka는 데이터를 여러 파티션으로 나누어 안전하게 보관하고, Spark는 이 데이터를 병렬로 빠르게 분석합니다. 
 
 시스템 장애가 발생하더라도 Kafka에 데이터가 보관되어 있어 Spark가 자동으로 재처리할 수 있으며, 데이터가 늘어나면 서버를 추가하여 쉽게 확장할 수 있습니다. 우리 시스템에서는 이러한 특성을 활용해 수백 개의 회의실 데이터를 평균 2-3초 만에 처리합니다.
 
-### 데이터 수집 및 처리
-1. **실시간 데이터 소스** (Kafka 토픽)
-   - `transcription.completed`: 음성 인식 결과
-   - `ticket.created`: 생성된 작업 티켓
-   - `ticket.updated`: 상태 변경된 티켓
-   - `analytics.ticket.metrics`: 티켓 분석 메트릭스
-   - `analytics.trends.group.{groupId}`: 그룹별 트렌드 분석
+Kafka and Spark are complementary distributed systems for large-scale data processing. Kafka safely stores data across multiple partitions, while Spark quickly analyzes this data in parallel.
 
-2. **Spark Streaming 분석**
-   - 1분 간격의 윈도우 기반 실시간 처리
-   - 7일 단위 트렌드 분석
-   - 그룹별 독립적인 메트릭스 산출
+Even if system failures occur, data is preserved in Kafka allowing Spark to automatically reprocess it, and the system can easily scale by adding servers as data grows. Using these characteristics, our system processes hundreds of meeting room data in an average of 2-3 seconds.
 
-### 분석 메트릭스 구조
+### 데이터 수집 및 처리 | Data Collection and Processing
+1. **실시간 데이터 소스 | Real-time Data Sources** (Kafka Topics)
+   - `transcription.completed`: 음성 인식 결과 | Voice recognition results
+   - `ticket.created`: 생성된 작업 티켓 | Created work tickets
+   - `ticket.updated`: 상태 변경된 티켓 | Status updated tickets
+   - `analytics.ticket.metrics`: 티켓 분석 메트릭스 | Ticket analysis metrics
+   - `analytics.trends.group.{groupId}`: 그룹별 트렌드 분석 | Group-specific trend analysis
 
-1. **티켓 분석 메트릭스** (`analytics.ticket.metrics`)
+2. **Spark Streaming 분석 | Spark Streaming Analysis**
+   - 1분 간격의 윈도우 기반 실시간 처리 | Real-time processing with 1-minute window intervals
+   - 7일 단위 트렌드 분석 | 7-day trend analysis
+   - 그룹별 독립적인 메트릭스 산출 | Independent metrics calculation per group
+
+### 분석 메트릭스 구조 | Analysis Metrics Structure
+
+1. **티켓 분석 메트릭스 | Ticket Analysis Metrics** (`analytics.ticket.metrics`)
    ```json
    {
        "window": {
@@ -394,13 +412,13 @@ Kafka와 Spark는 대규모 데이터 처리를 위한 상호보완적인 분산
            "end": "2024-03-20T10:01:00"
        },
        "meetingId": 123,
-       "actionableItemsCount": 5,    // 실행 가능한 작업 수
-       "statusUpdatesCount": 8,      // 상태 업데이트 수
-       "blockersMentioned": 2        // 블로커 언급 횟수
+       "actionableItemsCount": 5,    // 실행 가능한 작업 수 | Number of actionable items
+       "statusUpdatesCount": 8,      // 상태 업데이트 수 | Number of status updates
+       "blockersMentioned": 2        // 블로커 언급 횟수 | Number of blockers mentioned
    }
    ```
 
-2. **회의 생산성 점수**
+2. **회의 생산성 점수 | Meeting Productivity Score**
    ```json
    {
        "window": {
@@ -408,152 +426,169 @@ Kafka와 Spark는 대규모 데이터 처리를 위한 상호보완적인 분산
            "end": "2024-03-20T10:01:00"
        },
        "meetingId": 123,
-       "productivity_score": 0.85,    // 생산성 점수 (0-1)
-       "ticket_count": 10,           // 총 티켓 수
-       "actionable_tickets": 7       // 실행 가능한 티켓 수
+       "productivity_score": 0.85,    // 생산성 점수 (0-1) | Productivity score (0-1)
+       "ticket_count": 10,           // 총 티켓 수 | Total ticket count
+       "actionable_tickets": 7       // 실행 가능한 티켓 수 | Number of actionable tickets
    }
    ```
 
-3. **그룹별 트렌드 분석** (`analytics.trends.group.{groupId}`)
+3. **그룹별 트렌드 분석 | Group Trend Analysis** (`analytics.trends.group.{groupId}`)
    ```json
    {
        "period": {
            "start": "2024-03-18",
            "end": "2024-03-24"
        },
-       "avg_productivity": 0.75,      // 평균 생산성 점수
-       "avg_actionable_items": 12.5,  // 평균 실행 가능 작업 수
-       "avg_status_updates": 15.3,    // 평균 상태 업데이트 수
-       "meeting_count": 8             // 기간 내 회의 수
+       "avg_productivity": 0.75,      // 평균 생산성 점수 | Average productivity score
+       "avg_actionable_items": 12.5,  // 평균 실행 가능 작업 수 | Average actionable items
+       "avg_status_updates": 15.3,    // 평균 상태 업데이트 수 | Average status updates
+       "meeting_count": 8             // 기간 내 회의 수 | Meetings within period
    }
    ```
 
-### 기술적 구현
+### 기술적 구현 | Technical Implementation
 
-1. **데이터 파이프라인 구조**
+1. **데이터 파이프라인 구조 | Data Pipeline Structure**
    - Kafka → Spark Structured Streaming → Kafka/PostgreSQL
-   - 실시간 처리: 1분 윈도우 단위
-   - 트렌드 분석: 7일 단위 집계
+   - 실시간 처리: 1분 윈도우 단위 | Real-time processing: 1-minute window intervals
+   - 트렌드 분석: 7일 단위 집계 | Trend analysis: 7-day aggregation
 
-2. **주요 처리 단계**
-   a. **데이터 수집 (Kafka)**
-      - 음성 인식 결과 (transcription.completed)
-      - 티켓 생성 이벤트 (ticket.created)
-      - 티켓 업데이트 이벤트 (ticket.updated)
-      - 분석 메트릭스 (analytics.ticket.metrics)
-      - 그룹별 트렌드 (analytics.trends.groups)
+2. **주요 처리 단계 | Main Processing Steps**
+   a. **데이터 수집 (Kafka) | Data Collection (Kafka)**
+      - 음성 인식 결과 | Voice recognition results (transcription.completed)
+      - 티켓 생성 이벤트 | Ticket creation events (ticket.created)
+      - 티켓 업데이트 이벤트 | Ticket update events (ticket.updated)
+      - 분석 메트릭스 | Analysis metrics (analytics.ticket.metrics)
+      - 그룹별 트렌드 | Group trends (analytics.trends.groups)
 
-   b. **실시간 처리 (Spark Streaming)**
-      - 티켓 메트릭스 계산 (TicketAnalyzer)
-      - 텍스트 분석 및 키워드 추출 (MeetingAnalysisModel)
-      - 생산성 점수 계산 (MeetingMetricsAnalyzer)
-      - 토픽 클러스터링
+   b. **실시간 처리 (Spark Streaming) | Real-time Processing (Spark Streaming)**
+      - 티켓 메트릭스 계산 | Ticket metrics calculation (TicketAnalyzer)
+      - 텍스트 분석 및 키워드 추출 | Text analysis and keyword extraction (MeetingAnalysisModel)
+      - 생산성 점수 계산 | Productivity score calculation (MeetingMetricsAnalyzer)
+      - 토픽 클러스터링 | Topic clustering
 
-   c. **트렌드 분석**
-      - 그룹별 독립적 트렌드 분석
-      - 실시간 메트릭스와 회의 메트릭스 조인
-      - 7일 단위 집계 및 평균 계산
+   c. **트렌드 분석 | Trend Analysis**
+      - 그룹별 독립적 트렌드 분석 | Independent trend analysis per group
+      - 실시간 메트릭스와 회의 메트릭스 조인 | Join real-time metrics with meeting metrics
+      - 7일 단위 집계 및 평균 계산 | 7-day aggregation and average calculation
 
-3. **성능 최적화**
-   - Watermark 설정: 2분 (실시간), 1일 (워크플로우)
-   - 체크포인트 위치: `/tmp/checkpoints/`
-   - 비동기 DB 저장 (PostgreSQL)
-   - 스트림 처리 모드: "append"
+3. **성능 최적화 | Performance Optimization**
+   - Watermark 설정: 2분 (실시간), 1일 (워크플로우) | Watermark settings: 2min (real-time), 1day (workflow)
+   - 체크포인트 위치: `/tmp/checkpoints/` | Checkpoint location: `/tmp/checkpoints/`
+   - 비동기 DB 저장 (PostgreSQL) | Asynchronous DB storage (PostgreSQL)
+   - 스트림 처리 모드: "append" | Stream processing mode: "append"
 
-4. **데이터 저장**
-   - PostgreSQL: 패턴 분석, 실시간 메트릭스, 생산성 패턴
-   - Kafka: 실시간 분석 결과, 그룹별 트렌드
-   - 체크포인트: 스트림 처리 상태 보존
+4. **데이터 저장 | Data Storage**
+   - PostgreSQL: 패턴 분석, 실시간 메트릭스, 생산성 패턴 | Pattern analysis, real-time metrics, productivity patterns
+   - Kafka: 실시간 분석 결과, 그룹별 트렌드 | Real-time analysis results, group trends
+   - 체크포인트: 스트림 처리 상태 보존 | Checkpoint: Stream processing state preservation
 
-### 데이터 활용
+### 데이터 활용 | Data Utilization
 
-1. **실시간 모니터링**
-   - 회의별 생산성 점수 추적
-   - 티켓 생성 및 상태 변경 추이
-   - 블로커 발생 감지
-   - 실행 가능한 작업 수 추적
+1. **실시간 모니터링 | Real-time Monitoring**
+   - 회의별 생산성 점수 추적 | Meeting-specific productivity score tracking
+   - 티켓 생성 및 상태 변경 추이 | Ticket creation and status change trends
+   - 블로커 발생 감지 | Blocker occurrence detection
+   - 실행 가능한 작업 수 추적 | Actionable items count tracking
 
-2. **트렌드 분석**
-   - 그룹별 생산성 추이
-   - 회의 효율성 비교
-   - 작업 처리 패턴 식별
-   - 시간대별 생산성 패턴
+2. **트렌드 분석 | Trend Analysis**
+   - 그룹별 생산성 추이 | Group productivity trends
+   - 회의 효율성 비교 | Meeting efficiency comparison
+   - 작업 처리 패턴 식별 | Task processing pattern identification
+   - 시간대별 생산성 패턴 | Time-based productivity patterns
 
-3. **인사이트 도출**
-   - 최적 회의 시간대 추천
-   - 생산성 저하 요인 분석
-   - 팀별 성과 비교
-   - 워크플로우 병목 지점 식별
+3. **인사이트 도출 | Insight Generation**
+   - 최적 회의 시간대 추천 | Optimal meeting time recommendations
+   - 생산성 저하 요인 분석 | Productivity decline factor analysis
+   - 팀별 성과 비교 | Team performance comparison
+   - 워크플로우 병목 지점 식별 | Workflow bottleneck identification
 
-# 기술 스택
+# 기술 스택 | Technology Stack
 
-### 백엔드
-#### 메인 서버
+### Backend
+#### Main Server
 - TypeScript & Node.js
-- Express.js (웹 프레임워크)
+- Express.js (Web Framework)
 - Prisma (ORM)
-- PostgreSQL (데이터베이스)
+- PostgreSQL (Database)
 
-#### 음성 처리 서버
-- FastAPI (Python 웹 프레임워크)
-- Whisper (OpenAI 음성인식)
-- OpenAI GPT API (텍스트 처리)
+#### Voice Processing Server
+- FastAPI (Python Web Framework)
+- Whisper (OpenAI Speech Recognition)
+- OpenAI GPT API (Text Processing)
 
-#### 데이터 처리
-- Apache Kafka (메시지 큐)
+#### Data Processing
+- Apache Kafka (Message Queue)
 - Apache Spark & Scala
-  - Spark Streaming (실시간 데이터 처리)
-  - Spark ML (회의 내용 분석)
+  - Spark Streaming (Real-time Data Processing)
+  - Spark ML (Meeting Content Analysis)
 
-#### API 문서화
+#### API Documentation
 - Swagger UI
 
-### 프론트엔드
-- Next.js (React 프레임워크)
+### Frontend
+- Next.js (React Framework)
 - Firebase Authentication
 - TailwindCSS
 - React Query
-- WebSocket (실시간 통신)
+- WebSocket (Real-time Communication)
 
-### 개발 환경
+### Development Environment
 - Docker & Docker Compose
 - ESLint & Prettier
 
-### 시스템 요구사항
-- Docker & Docker Compose (필수)
+### System Requirements
+- Docker & Docker Compose (Required)
 - Node.js 18+
 - Python 3.11+
 - Java Runtime Environment 11+
-- GPU 기반 VM (선택사항)
+- GPU-based VM (Optional)
 
-# 프로젝트 배경
+# 레거시 프로젝트 | Legacy Project
 
-### 기존 AWS 프로젝트 플로우
-1. 클라이언트에서 오디오 스트림 시작
+### 기존 AWS 프로젝트 플로우 | Previous AWS Project Flow
+1. 클라이언트에서 오디오 스트림 시작 | Client Audio Stream Initiation
    - API Gateway를 통해 1분 단위로 오디오 데이터 전송
    - 티켓 상태 업데이트 요청 처리
 
-2. 오디오 처리 파이프라인
+   - Audio data transmission in 1-minute intervals through API Gateway
+   - Ticket status update request processing
+
+2. 오디오 처리 파이프라인 | Audio Processing Pipeline
    - Lambda를 통해 인증 및 메시지 큐 처리
    - MSK(Kafka)를 통한 오디오 데이터 스트리밍
    - 실시간 오디오 버퍼 처리 및 S3 저장
 
-3. 음성 인식 및 텍스트 처리
+   - Authentication and message queue processing through Lambda
+   - Audio data streaming through MSK(Kafka)
+   - Real-time audio buffer processing and S3 storage
+
+3. 음성 인식 및 텍스트 처리 | Speech Recognition and Text Processing
    - AWS Transcribe로 음성-텍스트 변환
    - 변환된 텍스트에서 주요 정보 추출
    - Bedrock을 통한 회의 내용 요약 및 작업 추출
 
-4. 티켓 관리 시스템
+   - Speech-to-text conversion using AWS Transcribe
+   - Key information extraction from converted text
+   - Meeting content summarization and task extraction through Bedrock
+
+4. 티켓 관리 시스템 | Ticket Management System
    - 자동 티켓 생성 및 상태 업데이트
    - 회의 내용 기반 작업 할당
    - 실시간 칸반보드 동기화
 
-### AWS 프로젝트 상세 구현
+   - Automatic ticket creation and status updates
+   - Task assignment based on meeting content
+   - Real-time Kanban board synchronization
 
-#### 1. API Gateway에서 MSK로의 오디오 스트리밍
+### AWS 프로젝트 상세 구현 | AWS Project Detailed Implementation
+
+#### 1. API Gateway에서 MSK로의 오디오 스트리밍 | Audio Streaming from API Gateway to MSK
 API Gateway를 통해 클라이언트로부터 받은 오디오 버퍼를 MSK(Managed Kafka)로 전달하는 Lambda 함수를 구현했습니다. 이 함수는 base64로 인코딩된 오디오 데이터를 받아 Kafka 토픽으로 전송합니다.
 
-**Lambda 함수 코드:**
+I implemented a Lambda function that forwards audio buffers received from clients through API Gateway to MSK(Managed Kafka). This function receives base64 encoded audio data and sends it to Kafka topics.
+
+**Lambda 함수 코드: | Lambda Function Code:**
 
 ```python
 from kafka import KafkaProducer
@@ -604,12 +639,14 @@ def lambda_handler(event, context):
         producer.close()
 ```
 
-#### 2. MSK 토픽 및 파티션 설정
+#### 2. MSK 토픽 및 파티션 설정 | MSK Topic and Partition Configuration
 EC2 인스턴스에서 Kafka 클러스터의 토픽과 파티션을 구성했습니다. 5개의 파티션을 생성하여 병렬 처리 능력을 향상시켰습니다.
+
+I configured topics and partitions of the Kafka cluster on EC2 instances. I created 5 partitions to enhance parallel processing capabilities.
 
 **토픽 생성 명령어:**
 
-```bash
+```kafka-cli
 bin/kafka-topics.sh --create \
     --bootstrap-server b-1.vorikafka.fet16s.c12.kafka.us-east-1.amazonaws.com:9092 \
     --replication-factor 1 \
@@ -617,12 +654,14 @@ bin/kafka-topics.sh --create \
     --topic voriAudioStream
 ```
 
-#### 3. MSK와 Lambda 이벤트 매핑
+#### 3. MSK와 Lambda 이벤트 매핑 | MSK and Lambda Event Mapping
 Lambda의 자동 동시성 처리 기능을 활용하여 단일 Lambda 함수로 MSK의 여러 파티션의 메시지를 효율적으로 처리했습니다.
+
+I efficiently processed messages from multiple MSK partitions using a single Lambda function by utilizing Lambda's automatic concurrency handling feature.
 
 **이벤트 매핑 명령어:**
 
-```bash
+```kafka-cli
 aws lambda create-event-source-mapping \
     --function-name vori_fromMskToS3_partition0 \
     --event-source-arn arn:aws:kafka:us-east-1:823401933116:cluster/vorikafka/985aecc8-9c79-4031-ab8f-088222c95a6d-12 \
@@ -631,10 +670,12 @@ aws lambda create-event-source-mapping \
     --topics voriAudioStream
 ```
 
-#### 4. S3 저장 및 처리 완료 시그널링
+#### 4. S3 저장 및 처리 완료 시그널링 | S3 Storage and Processing Completion Signaling
 오디오 버퍼를 S3에 저장하고, 모든 데이터가 수신되면 end.txt 파일을 생성하는 Lambda 함수를 구현했습니다.
 
-**Lambda 함수 코드:**
+I implemented a Lambda function that stores audio buffers in S3 and creates an end.txt file when all data has been received.
+
+**Lambda 함수 코드: | Lambda Function Code:**
 
 ```python
 import boto3
@@ -714,33 +755,42 @@ def create_end_txt(randomkey):
     return end_file_path
 ```
 
-#### 5. 주요 기술적 도전과 해결
+#### 5. 주요 기술적 도전과 해결 | Major Technical Challenges and Solutions
 
 ![awsVori_VPCEndpoint_Lesson](https://raw.githubusercontent.com/nampaca123/Vori_Reborn/main/awsVori_VPCEndpoint_Lesson.png)
 
-##### 문제:
+##### 문제 | Problem:
 Lambda와 MSK가 VPC 내에 배포되었지만, S3와의 연결에 문제가 있었습니다. NAT 게이트웨이와 인터넷 게이트웨이를 구성했음에도 불구하고 S3와의 통신이 어려웠습니다.
 
-##### 원인:
+I encountered connectivity issues between Lambda/MSK (deployed within VPC) and S3. Despite configuring NAT gateway and internet gateway, communication with S3 remained challenging.
+
+##### 원인 | Cause:
 Lambda와 MSK는 VPC 내부에 있었던 반면, S3는 외부에 위치해 있었습니다. AWS는 이와 같은 상황에서 NAT 게이트웨이나 인터넷 게이트웨이를 사용하는 것을 권장하지 않습니다. 이는 AWS의 서비스 아키텍처 설계 원칙과 맞지 않기 때문입니다. 그러므로 해당 방법은 IAM 권한 설정과 관련된 다양한 설정이 복잡해지는 단점이 있으며, 효율적인 네트워크 구성에는 적합하지 않습니다.
 
-##### 해결 방안:
+While Lambda and MSK were inside the VPC, S3 was located externally. AWS does not recommend using NAT gateway or internet gateway in such situations as it conflicts with AWS service architecture design principles. This approach complicates IAM permission settings and is not suitable for efficient network configuration.
+
+##### 해결 방안 | Solution:
 VPC Endpoint를 생성하여 Lambda와 S3 간에 AWS 내부에서 프라이빗 연결을 설정했습니다. 이를 통해 외부 인터넷 트래픽을 경유하지 않고도 안전하게 연결할 수 있었으며, 권한 설정도 간소화되었습니다. 또한, AWS 내에서 프라이빗 네트워크가 형성되어 보안이 강화되었습니다. 또한, NAT 게이트웨이를 사용하지 않음으로써 네트워크 트래픽에 따른 추가 비용을 절감할 수 있었습니다.
 
-##### 배운 점:
+I created a VPC Endpoint to establish private connectivity between Lambda and S3 within AWS. This enabled secure connections without external internet traffic and simplified permission settings. Additionally, it enhanced security through private networking within AWS and reduced costs by eliminating the need for NAT gateway traffic.
+
+##### 배운 점 | Lessons Learned:
 이 문제를 통해 AWS 네트워크 구성에 대한 이해를 넓힐 수 있었으며, AWS의 권장 사항에 따라 인프라 구성 요소를 정렬하는 것이 얼마나 중요한지 배웠습니다. 비용 절감과 더불어 보안성과 관리 편의성을 모두 향상시킬 수 있었습니다.
 
-### 주요 마이그레이션 포인트
-- AWS MSK → Apache Kafka (로컬)
+Through this issue, I deepened my understanding of AWS network configuration and learned the importance of aligning infrastructure components with AWS recommendations. I was able to improve both security and manageability while reducing costs.
+
+### 주요 마이그레이션 포인트 | Key Migration Points
+- AWS MSK → Apache Kafka (로컬 | Local)
 - AWS Transcribe → Whisper
 - AWS Bedrock → Claude 3.5 API
-- AWS S3 → 로컬 파일 시스템
-- AWS Lambda → Express.js 엔드포인트
+- AWS S3 → 로컬 파일 시스템 | Local File System
+- AWS Lambda → Express.js 엔드포인트 | Endpoints
 
-## 설치 방법
-(추후 작성 예정)
+## 설치 방법 | Installation Guide
+(추후 작성 예정 | To be written)
 
-## API 문서(추후 작성 예정)
+## API 문서 | API Documentation
+(추후 작성 예정 | To be written)
 
-## 라이선스
+## 라이선스 | License
 MIT License
